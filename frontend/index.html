@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BotLaunch - BOT Chain Testnet</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<style>
+body{font-family:sans-serif;max-width:760px;margin:24px auto;padding:0 12px}
+input{width:100%;margin:2px 0;box-sizing:border-box}
+button{margin:4px 4px 4px 0}
+pre{background:#111;color:#0f0;padding:12px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>BotLaunch - BOT Chain Testnet</h1>
+<p>Launch a token on BDEX V3. Create token, then ensure a pool against a base (e.g. WBOT). Chain 968.</p>
+<button id="b_connect">Connect wallet</button>
+<p>Factory contract <input id="faddr" size="44"></p>
+<h2>Create token</h2>
+<p>Name <input id="tk_name"> Symbol <input id="tk_symbol"> Supply (tokens) <input id="tk_supply"> <button id="b_create">Create token</button></p>
+<h2>Ensure pool</h2>
+<p>Token <input id="pool_tok"> Base <input id="pool_base"> Fee tier (3000 = 0.3%) <input id="pool_fee" value="3000"> <button id="b_pool">Ensure pool</button></p>
+<h2>Token you just minted (if any)</h2>
+<p>Token address <input id="mint_addr" readonly=""></p>
+<h2>Approve + transfer (manual balance check)</h2>
+<p>Token <input id="tok_addr"> Spender <input id="tok_spend"> Amount (tokens) <input id="tok_amt"> <button id="b_approve">Approve</button> <button id="b_bal">Read balance</button></p>
+<h2>Read factory state</h2>
+<p><button id="b_read">Read owner / v3factory / positionManager / gating</button></p>
+<h2>Owner - listing gate (anti-rug filter)</h2>
+<p>When gating is on, only verified tokens may create a pool. Scream-filter: verify tokens you audited; a launcher that lists everything is a rug faucet.</p>
+<p>Token <input id="vf_tok"> verified true or false <input id="vf_on" value="true"> <button id="b_verify">Set verified</button></p>
+<p>Gating on true or false <input id="gt_on" value="false"> <button id="b_gate">Set gating</button></p>
+<h2>Log</h2>
+<pre id="log"></pre>
+<p><a href="https://faucet.botchain.ai/basic">Testnet faucet</a> - <a href="https://scan.bohr.life">Testnet explorer</a></p>
+<script src="app.js"></script>
+</body>
+</html>
