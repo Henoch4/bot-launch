@@ -1,4 +1,4 @@
-const FACTORY_DEFAULT=`0xbB8BEd358538119EfEB72cCf1231EAD30985074A`;
+const FACTORY_DEFAULT=`0xA27963D86F6805ED72591d59c58fed96F4fd9c81`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 
