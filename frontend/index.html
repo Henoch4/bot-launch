@@ -287,7 +287,7 @@
         <span class="mech-label">Machine room</span>
         <div class="ledger">
           <div class="ledger-row"><span class="lbl">Token</span><span class="val"><em>BotToken</em> · ERC-20 minted to you</span></div>
-          <div class="ledger-row"><span class="lbl">Pool</span><span class="val">audited <em>IBotV3Factory</em></span></div>
+          <div class="ledger-row"><span class="lbl">Pool engine</span><span class="val">audited V3 · <em id="ledgerEngine">fetching…</em></span></div>
           <div class="ledger-row"><span class="lbl">Guard</span><span class="val">two-key wall — <em>owner</em> + <em>gatekeeper</em></span></div>
           <div class="ledger-row"><span class="lbl">State</span><span class="val"><em id="ledgerGateState">fetching…</em></span></div>
         </div>
@@ -412,6 +412,7 @@
           <div class="cons-field"><label>Token address</label><input id="vf_tok" placeholder="0x…"></div>
           <div class="cons-field"><label>Status</label><select id="vf_on"><option value="true">verified → cleared</option><option value="false">revoke</option></select></div>
           <button class="btn cons-btn" id="b_verify">setVerified →</button>
+          <div class="cons-sub" id="vf_status" style="margin-top:8px;color:var(--muted-dim);">read-only: fill in a token to see its live gate status</div>
         </div>
         <div class="gate-col">
           <h3>Gate master switch</h3>

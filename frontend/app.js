@@ -92,14 +92,36 @@ async function readGateState(){
     const v=new ethers.Contract(a,FACTORY_ABI,p);
     const on=await v.gatingEnabled();
     const owner=await v.owner();
+    const eng=await v.v3factory();
     el(`ledgerGateState`).textContent=on?`gate clocked ON — enforced`:`gate off — open listings`;
     el(`gateState`).textContent=on?`gate: ENFORCED`:`gate: OPEN`;
     el(`kingGate`).textContent=on?`1/1`:`0/1 (open listings)`;
-    log(`gate state: `+(on?`ENFORCED`:`OPEN`)+` · owner `+shorten(owner));
+    el(`ledgerEngine`).textContent=shorten(eng);
+    log(`gate state: `+(on?`ENFORCED`:`OPEN`)+` · owner `+shorten(owner)+` · V3 engine `+shorten(eng));
     return on;
   }catch(e){
     log(`read gate state failed: `+(e.shortMessage||e.message));
     return null;
+  }
+}
+
+async function readTokenStatus(){
+  const t=el(`vf_tok`).value.trim();
+  const s=el(`vf_status`);
+  if(!t || !/^0x[0-9a-fA-F]{40}$/.test(t)){
+    s.textContent=`read-only: fill in a token to see its live gate status`;
+    s.style.color=`var(--muted-dim)`;
+    return;
+  }
+  try{
+    const p=new ethers.JsonRpcProvider(RPC);
+    const v=new ethers.Contract(el(`faddr`).value.trim()||FACTORY_DEFAULT,FACTORY_ABI,p);
+    const on=await v.verified(t);
+    s.textContent=on?`✓ verified — ${shorten(t)} clears the gate`:`✗ not verified — ensurePool will revert with NotVerified`;
+    s.style.color=on?`var(--green)`:`var(--red)`;
+  }catch(e){
+    s.textContent=`could not read verified status`;
+    s.style.color=`var(--muted-dim)`;
   }
 }
 
@@ -151,6 +173,7 @@ async function doVerify(){
   if(!t){ log(`verify: token required`); return; }
   await send(factory().setVerified(t,on),`setVerified(${shorten(t)},${on})`);
   readGateState();
+  readTokenStatus();
 }
 
 async function doGate(){
@@ -175,5 +198,7 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`b_gate`).addEventListener(`click`,doGate);
   el(`clearLog`).addEventListener(`click`,(e)=>{ e.preventDefault(); el(`log`).innerHTML=``; });
   el(`faddr`).addEventListener(`change`,readGateState);
+  el(`vf_tok`).addEventListener(`change`,readTokenStatus);
   readGateState();
+  readTokenStatus();
 });
