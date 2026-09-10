@@ -25,10 +25,35 @@ const ERC20_ABI=[
 let signer=null;
 let account=null;
 
+const TICKER_ITEMS=[
+  `no tax, no clowns — the token is a plain ERC-20`,
+  `listings blocked until the gatekeeper verifies your token`,
+  `pool created on the audited V3 engine, LP stays yours`,
+  `gate is a chain-of-custody signal — not advice, not yolo`,
+  `two-key wall coming next`,
+  `sandbox mainnet boots first — harsher taxes included`,
+];
+
 function log(m){
   const el=document.getElementById(`log`);
-  el.textContent+=m+`\n`;
+  const d=document.createElement(`div`);
+  d.textContent=m;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
 }
+function el(id){ return document.getElementById(id); }
+function shorten(a){ return a ? a.slice(0,6)+`…`+a.slice(-4) : ``; }
+
+function factory(){
+  const a=el(`faddr`).value.trim()||FACTORY_DEFAULT;
+  const p=signer||new ethers.JsonRpcProvider(RPC);
+  return new ethers.Contract(a,FACTORY_ABI,p);
+}
+function erc20(a){
+  const p=signer||new ethers.JsonRpcProvider(RPC);
+  return new ethers.Contract(a,ERC20_ABI,p);
+}
+
 async function connect(){
   if(!window.ethereum){ log(`no wallet found, use MetaMask`); return; }
   const accs=await window.ethereum.request({method:`eth_requestAccounts`});
@@ -39,85 +64,116 @@ async function connect(){
     await window.ethereum.request({method:`wallet_addEthereumChain`,params:[{chainId:`0x3c8`,chainName:`BOT Chain Testnet`,nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},rpcUrls:[RPC],blockExplorerUrls:[EXPLORER]}]});
   }
   signer=await new ethers.BrowserProvider(window.ethereum).getSigner();
+  el(`navState`).textContent=shorten(account)+` · testnet`;
+  el(`connectBtn`).textContent=`Connected`;
   log(`connected `+account);
 }
-function factory(){
-  const a=document.getElementById(`faddr`).value||FACTORY_DEFAULT;
-  const p=signer||new ethers.JsonRpcProvider(RPC);
-  return new ethers.Contract(a,FACTORY_ABI,p);
-}
-function erc20(a){
-  const p=signer||new ethers.JsonRpcProvider(RPC);
-  return new ethers.Contract(a,ERC20_ABI,p);
-}
+
 async function send(promise,label){
   try{
     const tx=await promise;
     log(label+` sent `+tx.hash);
-    await tx.wait();
-    log(label+` confirmed`);
-    return tx;
+    document.title=`⏳ `+label;
+    const rc=await tx.wait();
+    document.title=`BotLaunch — Clear the gate`;
+    log(`✓ `+label+` confirmed`);
+    return rc;
   }catch(e){
-    log(label+` failed `+(e.reason||e.shortMessage||e.message||e));
+    document.title=`BotLaunch — Clear the gate`;
+    log(`✗ `+label+` failed: `+(e.reason||e.shortMessage||(e.message||e).split(`\n`)[0]));
     return null;
   }
 }
-async function doCreate(){
-  const v=factory();
-  const n=document.getElementById(`tk_name`).value;
-  const s=document.getElementById(`tk_symbol`).value;
-  const sup=ethers.parseEther(document.getElementById(`tk_supply`).value||`0`);
-  const tx=await send(v.createToken(n,s,sup),`createToken`);
-  if(tx){
-    const rc=await tx.wait();
-    const ev=rc.logs.map((l)=>{try{v.interface.parseLog(l)}catch(e){return null}}).filter(Boolean);
-    const cev=ev.find((x)=>x.name===`TokenCreated`);
-    if(cev)document.getElementById(`mint_addr`).value=cev.args.token;
+
+async function readGateState(){
+  const a=el(`faddr`).value.trim()||FACTORY_DEFAULT;
+  try{
+    const p=new ethers.JsonRpcProvider(RPC);
+    const v=new ethers.Contract(a,FACTORY_ABI,p);
+    const on=await v.gatingEnabled();
+    const owner=await v.owner();
+    el(`ledgerGateState`).textContent=on?`gate clocked ON — enforced`:`gate off — open listings`;
+    el(`gateState`).textContent=on?`gate: ENFORCED`:`gate: OPEN`;
+    el(`kingGate`).textContent=on?`1/1`:`0/1 (open listings)`;
+    log(`gate state: `+(on?`ENFORCED`:`OPEN`)+` · owner `+shorten(owner));
+    return on;
+  }catch(e){
+    log(`read gate state failed: `+(e.shortMessage||e.message));
+    return null;
   }
 }
+
+async function doCreate(){
+  const n=el(`tk_name`).value.trim();
+  const s=el(`tk_symbol`).value.trim();
+  const sup=ethers.parseEther(el(`tk_supply`).value||`0`);
+  if(!n||!s){ log(`create: name and symbol required`); return; }
+  const rc=await send(factory().createToken(n,s,sup),`createToken (${n} ${s})`);
+  if(rc){
+    const iface=new ethers.Interface(FACTORY_ABI);
+    for(const l of rc.logs){
+      try{
+        const ev=iface.parseLog(l);
+        if(ev && ev.name===`TokenCreated`){
+          const tok=ev.args.token;
+          el(`pool_tok`).value=tok;
+          el(`mint_result`).style.display=`block`;
+          el(`mint_result`).textContent=`token ${s} · ${tok}`;
+          log(`✓ minted token at ${tok}`);
+        }
+      }catch(e){}
+    }
+  }
+}
+
 async function doPool(){
-  const v=factory();
-  const t=document.getElementById(`pool_tok`).value;
-  const b=document.getElementById(`pool_base`).value;
-  const fee=Number(document.getElementById(`pool_fee`).value);
-  await send(v.ensurePool(t,b,fee),`ensurePool`);
+  const t=el(`pool_tok`).value.trim();
+  const b=el(`pool_base`).value.trim();
+  const fee=Number(el(`pool_fee`).value);
+  if(!t||!b){ log(`pool: token and base required`); return; }
+  const rc=await send(factory().ensurePool(t,b,fee),`ensurePool (${shorten(t)})`);
+  if(rc){
+    const iface=new ethers.Interface(FACTORY_ABI);
+    for(const l of rc.logs){
+      try{
+        const ev=iface.parseLog(l);
+        if(ev && ev.name===`PoolReady`){
+          log(`✓ pool ${ev.args.pool} on fee tier ${Number(ev.args.fee)}`);
+        }
+      }catch(e){}
+    }
+  }
 }
-async function doApprove(){
-  const t=document.getElementById(`tok_addr`).value;
-  const s=document.getElementById(`tok_spend`).value;
-  const amt=ethers.parseEther(document.getElementById(`tok_amt`).value||`0`);
-  await send(erc20(t).approve(s,amt),`approve`);
-}
-async function doBal(){
-  if(!account){ log(`connect wallet first to read your balance`); return; }
-  const t=document.getElementById(`tok_addr`).value;
-  const e=erc20(t);
-  log(`name `+await e.name()+` symbol `+await e.symbol());
-  log(`balance `+ethers.formatEther(await e.balanceOf(account)));
-}
-async function doRead(){
-  const v=factory();
-  log(`owner `+await v.owner());
-  log(`v3factory `+await v.v3factory());
-  log(`positionManager `+await v.positionManager());
-  log(`gatingEnabled `+await v.gatingEnabled());
-}
+
 async function doVerify(){
-  const v=factory();
-  const t=document.getElementById(`vf_tok`).value;
-  const on=document.getElementById(`vf_on`).value===`true`;
-  await send(v.setVerified(t,on),`setVerified`);
+  const t=el(`vf_tok`).value.trim();
+  const on=el(`vf_on`).value===`true`;
+  if(!t){ log(`verify: token required`); return; }
+  await send(factory().setVerified(t,on),`setVerified(${shorten(t)},${on})`);
+  readGateState();
 }
+
 async function doGate(){
-  const v=factory();
-  const on=document.getElementById(`gt_on`).value===`true`;
-  await send(v.setGating(on),`setGating`);
+  const on=el(`gt_on`).value===`true`;
+  await send(factory().setGating(on),`setGating(${on})`);
+  readGateState();
 }
-document.getElementById(`b_connect`).addEventListener(`click`,connect);
-document.getElementById(`b_create`).addEventListener(`click`,doCreate);
-document.getElementById(`b_pool`).addEventListener(`click`,doPool);
-document.getElementById(`b_approve`).addEventListener(`click`,doApprove);
-document.getElementById(`b_bal`).addEventListener(`click`,doBal);
-document.getElementById(`b_read`).addEventListener(`click`,doRead);
-document.getElementById(`b_verify`).addEventListener(`click`,doVerify);
-document.getElementById(`b_gate`).addEventListener(`click`,doGate);
+
+function buildTicker(){
+  const track=el(`tickerTrack`);
+  const half=TICKER_ITEMS.map(t=>`<span>→ ${t}</span>`).join(``);
+  track.innerHTML=half+half; 
+}
+
+document.addEventListener(`DOMContentLoaded`,()=>{
+  el(`faddr`).value=FACTORY_DEFAULT;
+  buildTicker();
+  el(`connectBtn`).addEventListener(`click`,connect);
+  el(`b_create`).addEventListener(`click`,doCreate);
+  el(`b_pool`).addEventListener(`click`,doPool);
+  el(`b_verify`).addEventListener(`click`,doVerify);
+  el(`b_gate`).addEventListener(`click`,doGate);
+  el(`clearLog`).addEventListener(`click`,(e)=>{ e.preventDefault(); el(`log`).innerHTML=``; });
+  el(`faddr`).addEventListener(`change`,readGateState);
+  readGateState();
+});

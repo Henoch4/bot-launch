@@ -3,37 +3,432 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BotLaunch - BOT Chain Testnet</title>
-<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<title>BotLaunch — Clear the gate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-body{font-family:sans-serif;max-width:760px;margin:24px auto;padding:0 12px}
-input{width:100%;margin:2px 0;box-sizing:border-box}
-button{margin:4px 4px 4px 0}
-pre{background:#111;color:#0f0;padding:12px;white-space:pre-wrap}
+  :root{
+    --ink:#131210;
+    --ink-2:#1b1916;
+    --panel:#221f1a;
+    --paper:#efe9d8;
+    --paper-shade:#e3d9bf;
+    --brass:#d8a24a;
+    --brass-deep:#9c6f26;
+    --rust:#c1481d;
+    --slate:#3d4a52;
+    --muted:#a99f8b;
+    --muted-dim:#6f6756;
+    --line:#3a352a;
+    --green:#6aa84f;
+    --green-ink:#22491a;
+    --red:#c1481d;
+    --red-ink:#ffe3d6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);color:var(--paper);font-family:'Zilla Slab',serif;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  nav{
+    position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;background:rgba(19,18,16,.88);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-brand{font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.02em;font-size:14px;}
+  .nav-brand em{color:var(--brass);font-style:normal;}
+  .nav-links{display:flex;gap:22px;align-items:center;}
+  .nav-links a{color:var(--muted);text-decoration:none;font-size:14px;}
+  .nav-links a:hover{color:var(--paper);}
+  @media(max-width:640px){.nav-links a:not(.nav-cta){display:none;}}
+  button.btn{
+    font-family:'Zilla Slab',serif;font-weight:700;font-size:13px;
+    padding:9px 14px;border-radius:4px;border:1px solid var(--line);
+    background:var(--panel);color:var(--paper);cursor:pointer;
+  }
+  button.btn:hover{border-color:var(--muted-dim);}
+  button.btn.primary{background:var(--brass);color:#33230a;border-color:var(--brass);}
+  button.btn.primary:hover{filter:brightness(1.08);}
+  button.btn.ghost{background:transparent;}
+  button.btn:disabled{opacity:.45;cursor:not-allowed;}
+  #navState{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+
+  .hero{
+    text-align:center;padding:96px 24px 40px;position:relative;overflow:hidden;
+    background-image:repeating-linear-gradient(0deg,transparent 0 24px,rgba(216,162,74,.028) 24px 25px),repeating-linear-gradient(90deg,transparent 0 24px,rgba(216,162,74,.028) 24px 25px);
+  }
+  .hero .kicker{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);letter-spacing:.16em;
+    text-transform:uppercase;margin-bottom:20px;
+  }
+  .hero h1{
+    font-weight:800;font-size:clamp(38px,7vw,76px);line-height:.98;margin:0 0 22px;
+  }
+  .hero h1 .serif-b{color:var(--brass);font-style:italic;}
+  .hero .sub{font-size:19px;color:var(--muted);max-width:620px;margin:0 auto 34px;}
+  .hero .ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .hero .ctas .btn{font-size:15px;padding:12px 22px;}
+
+  .month{
+    position:absolute;top:36px;left:50%;transform:translateX(-50%);
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);letter-spacing:.3em;
+  }
+  .stamp{
+    position:absolute;top:130px;right:8%;transform:rotate(12deg);
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;letter-spacing:.12em;
+    color:#d34a1f;border:2px solid #d34a1f;padding:6px 12px;border-radius:3px;opacity:.85;
+  }
+  @media(max-width:720px){.stamp{display:none;}}
+
+  .hero-panel{
+    margin-top:44px;background:linear-gradient(180deg,var(--ink-2),#141210);
+    border:1px solid var(--line);border-radius:12px;padding:22px;text-align:left;
+    display:grid;grid-template-columns:1.4fr 1fr;gap:26px;
+  }
+  @media(max-width:760px){.hero-panel{grid-template-columns:1fr;}}
+  .mech-label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted-dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:block;}
+  .ledger{background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:16px;}
+  .ledger-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14px;}
+  .ledger-row:last-child{border-bottom:none;}
+  .ledger-row .lbl{color:var(--muted);}
+  .ledger-row .val{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--paper);}
+  .ledger-row .val em{color:var(--brass);font-style:normal;}
+  .kingdom-row{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--line);}
+  .kingdom-row:last-child{border-bottom:none;}
+  .frac{color:var(--muted-dim);font-size:15px;}
+
+  .ticker{
+    background:var(--ink-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+    overflow:hidden;padding:12px 0;
+  }
+  .ticker-track{display:flex;gap:48px;white-space:nowrap;animation:ticker 32s linear infinite;}
+  .ticker-track span{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
+  .ticker-track span em{color:var(--brass);font-style:normal;}
+  @keyframes ticker{to{transform:translateX(-50%);}}
+
+  section{padding:64px 0 8px;}
+  .section-label{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);letter-spacing:.14em;
+    text-transform:uppercase;margin-bottom:8px;
+  }
+  .section-title{font-size:clamp(26px,4vw,40px);font-weight:800;margin:0 0 14px;}
+  .section-title em{color:var(--brass);font-style:italic;}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px;}
+  @media(max-width:760px){.steps{grid-template-columns:1fr;}}
+  .step{background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:22px;}
+  .step .num{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);border:1px solid var(--brass-deep);
+    width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;margin-bottom:14px;
+  }
+  .step h3{margin:0 0 8px;font-size:18px;}
+  .step p{margin:0;color:var(--muted);font-size:14.5px;}
+
+  .gate-panel{
+    background:var(--ink-2);border:1px solid var(--line);border-radius:12px;margin-top:30px;overflow:hidden;
+  }
+  .gate-top{
+    padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+    align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .gate-top .gtitle{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;letter-spacing:.06em;}
+  .gate-note{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);}
+  .gate-grid{display:grid;grid-template-columns:1fr 1fr;}
+  @media(max-width:760px){.gate-grid{grid-template-columns:1fr;}}
+  .gate-col{padding:22px;}
+  .gate-col+.gate-col{border-left:1px solid var(--line);}
+  @media(max-width:760px){.gate-col+.gate-col{border-left:none;border-top:1px solid var(--line);}}
+  .gate-col h3{margin:0 0 14px;font-size:16px;}
+  .criterion{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:14.5px;}
+  .criterion .lede{color:var(--muted);}
+  .criterion b{color:var(--paper);}
+  .crit-icon{width:22px;height:22px;flex:none;}
+  .ledger-rows{display:flex;flex-direction:column;gap:8px;}
+  .ledger-entry{
+    display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:6px;background:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+  }
+  .ledger-entry .tok{color:var(--paper);font-weight:600;}
+  .ledger-entry .meta{color:var(--muted-dim);margin-left:auto;font-size:11px;}
+  .stamp-pill{font-weight:600;font-size:10.5px;letter-spacing:.08em;padding:3px 8px;border-radius:2px;text-transform:uppercase;}
+  .stamp-pill.cleared{background:var(--green);color:#fff;transform:rotate(-2deg);}
+  .stamp-pill.held{background:#b8860b;color:#fff;transform:rotate(-2deg);}
+  .stamp-pill.flagged{background:var(--red);color:var(--red-ink);transform:rotate(2deg);}
+
+  .console{
+    margin-top:30px;background:#0d0c0b;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .console-bar{
+    display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--ink-2);
+    border-bottom:1px solid var(--line);
+  }
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .dot.r{background:#e0523f;} .dot.y{background:#e0b23f;} .dot.g{background:#5ac07b;}
+  .console-title{font-size:12px;color:var(--muted);margin-left:8px;letter-spacing:.04em;}
+  #gateState{font-size:11px;color:var(--brass);margin-left:auto;}
+  .console-body{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:760px){.console-body{grid-template-columns:1fr;}}
+  .cons-group h4{margin:0 0 12px;font-size:12px;letter-spacing:.1em;color:var(--muted-dim);text-transform:uppercase;}
+  .cons-field{margin-bottom:10px;}
+  .cons-field label{display:block;font-size:10.5px;color:var(--muted-dim);margin-bottom:4px;letter-spacing:.05em;}
+  .cons-field input,.cons-field select{
+    width:100%;background:var(--ink);border:1px solid var(--line);border-radius:4px;color:var(--paper);
+    padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:13px;
+  }
+  .cons-field input:focus,.cons-field select:focus{outline:none;border-color:var(--brass-deep);}
+  .cons-btn{width:100%;margin-top:2px;}
+  .mint-result{
+    margin-top:10px;font-size:11px;color:var(--green);word-break:break-all;display:none;
+  }
+  .cons-sub{font-size:11px;color:var(--muted-dim);margin-top:6px;}
+
+  .roadmap{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:30px;}
+  @media(max-width:760px){.roadmap{grid-template-columns:1fr;}}
+  .rm-item{background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:20px;}
+  .rm-item h3{margin:0 0 10px;font-size:17px;display:flex;align-items:center;gap:10px;}
+  .rm-item p{margin:0;color:var(--muted);font-size:14.5px;}
+  .rm-tag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:3px 8px;border-radius:3px;letter-spacing:.06em;}
+  .rm-tag.live{background:var(--green);color:#0f1f0a;text-transform:uppercase;}
+  .rm-tag.parked{background:var(--slate);color:#cfd9e0;text-transform:uppercase;}
+  .rm-tag.next{background:var(--brass);color:#33230a;text-transform:uppercase;}
+
+  .disclaimer{
+    border:1px dashed var(--line);border-radius:8px;padding:16px 18px;margin:48px 0 20px;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted-dim);line-height:1.7;
+  }
+  #log{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted-dim);
+    border-top:1px solid var(--line);padding-top:10px;margin-top:10px;max-height:110px;overflow:auto;
+  }
+  #log div{padding:2px 0;}
+  footer{
+    padding:28px 0 60px;border-top:1px solid var(--line);margin-top:40px;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted-dim);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;
+  }
+  footer a{color:var(--brass);text-decoration:none;}
+  .addr-field{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .addr-field input{
+    width:340px;background:var(--ink-2);border:1px solid var(--line);border-radius:4px;
+    color:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 9px;
+  }
+  @media(max-width:640px){.addr-field input{width:100%;}}
 </style>
 </head>
 <body>
-<h1>BotLaunch - BOT Chain Testnet</h1>
-<p>Launch a token on BDEX V3. Create token, then ensure a pool against a base (e.g. WBOT). Chain 968.</p>
-<button id="b_connect">Connect wallet</button>
-<p>Factory contract <input id="faddr" size="44"></p>
-<h2>Create token</h2>
-<p>Name <input id="tk_name"> Symbol <input id="tk_symbol"> Supply (tokens) <input id="tk_supply"> <button id="b_create">Create token</button></p>
-<h2>Ensure pool</h2>
-<p>Token <input id="pool_tok"> Base <input id="pool_base"> Fee tier (3000 = 0.3%) <input id="pool_fee" value="3000"> <button id="b_pool">Ensure pool</button></p>
-<h2>Token you just minted (if any)</h2>
-<p>Token address <input id="mint_addr" readonly=""></p>
-<h2>Approve + transfer (manual balance check)</h2>
-<p>Token <input id="tok_addr"> Spender <input id="tok_spend"> Amount (tokens) <input id="tok_amt"> <button id="b_approve">Approve</button> <button id="b_bal">Read balance</button></p>
-<h2>Read factory state</h2>
-<p><button id="b_read">Read owner / v3factory / positionManager / gating</button></p>
-<h2>Owner - listing gate (anti-rug filter)</h2>
-<p>When gating is on, only verified tokens may create a pool. Scream-filter: verify tokens you audited; a launcher that lists everything is a rug faucet.</p>
-<p>Token <input id="vf_tok"> verified true or false <input id="vf_on" value="true"> <button id="b_verify">Set verified</button></p>
-<p>Gating on true or false <input id="gt_on" value="false"> <button id="b_gate">Set gating</button></p>
-<h2>Log</h2>
-<pre id="log"></pre>
-<p><a href="https://faucet.botchain.ai/basic">Testnet faucet</a> - <a href="https://scan.bohr.life">Testnet explorer</a></p>
+
+<nav>
+  <div class="nav-brand">BOT<em>LAUNCH</em> · gate v1</div>
+  <div class="nav-links">
+    <a href="#gate">the gate</a>
+    <a href="#console">operator console</a>
+    <a href="#roadmap">roadmap</a>
+    <span id="navState">read-only</span>
+    <button class="btn primary" id="connectBtn">Connect wallet</button>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="month">9 · 2026</div>
+    <div class="stamp">GATE ENFORCED</div>
+    <div class="kicker">BOT Chain · token launch infrastructure</div>
+    <h1>Anyone can mint a token.<br><span class="serif-b">Not everyone clears the gate.</span></h1>
+    <div class="sub">Launch on a real DEX rail. One contract mints your token, another hands it to an audited pool engine — and a third-party gatekeeper decides who plays.</div>
+    <div class="ctas">
+      <a href="#console"><button class="btn primary">Open the console</button></a>
+      <a href="#gate"><button class="btn ghost">Read the gate rules</button></a>
+    </div>
+
+    <div class="hero-panel">
+      <div class="hero-mech">
+        <span class="mech-label">Machine room</span>
+        <div class="ledger">
+          <div class="ledger-row"><span class="lbl">Token</span><span class="val"><em>BotToken</em> · ERC-20 minted to you</span></div>
+          <div class="ledger-row"><span class="lbl">Pool</span><span class="val">audited <em>IBotV3Factory</em></span></div>
+          <div class="ledger-row"><span class="lbl">Guard</span><span class="val">two-key wall — <em>owner</em> + <em>gatekeeper</em></span></div>
+          <div class="ledger-row"><span class="lbl">State</span><span class="val"><em id="ledgerGateState">fetching…</em></span></div>
+        </div>
+      </div>
+      <div class="hero-kingdom">
+        <span class="mech-label">Opening criteria</span>
+        <div class="kingdom-row"><span>Mint &amp; verify</span><span class="frac">1/2</span></div>
+        <div class="kingdom-row"><span>Gate check</span><span class="frac" id="kingGate">0/1</span></div>
+        <div class="kingdom-row"><span>Pool created</span><span class="frac">0/2</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ticker">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<div class="wrap">
+  <section id="gate">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">Three doors, one <em>gate</em>.</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="num">1</span>
+        <h3>Mint your token</h3>
+        <p><code>createToken(name, symbol, supply)</code> — a plain ERC-20 lands in your wallet. No tax, no clowns, no renounce ceremony.</p>
+      </div>
+      <div class="step">
+        <span class="num">2</span>
+        <h3>Pass the gate</h3>
+        <p>The gatekeeper operator must <code>setVerified(token, true)</code>. Until then, <code>ensurePool</code> refuses you on-chain — no silent rug, no unlocked LP.</p>
+      </div>
+      <div class="step">
+        <span class="num">3</span>
+        <h3>Get a pool</h3>
+        <p><code>ensurePool(token, base, fee)</code> pulls the pool or creates one on the audited V3 engine, then you add liquidity yourself. Your keys, your liquidity.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">The gate ledger</div>
+    <h2 class="section-title">Who got <em>cleared</em>.</h2>
+    <div class="gate-panel">
+      <div class="gate-top">
+        <div class="gtitle">Gate ledger · status board</div>
+        <div class="gate-note">listings blocked until the operator verifies · stamp flipped on-chain by <code>setVerified</code> — rows below are illustrative, the live state is the <em>gate: ENFORCED / OPEN</em> readout above</div>
+      </div>
+      <div class="gate-grid">
+        <div class="gate-col">
+          <h3>What makes the cut</h3>
+          <div class="criterion">
+            <svg class="crit-icon" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="var(--green)" stroke-width="2"/><path d="M7 11.5l2.8 2.8L15 8.6" stroke="var(--green)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="criterion-txt"><span class="lede">Operator review, honest market intent, audited router path.</span></div>
+          </div>
+          <div class="criterion">
+            <svg class="crit-icon" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="var(--brass)" stroke-width="2"/><path d="M6 6l10 10M16 6L6 16" stroke="var(--brass)" stroke-width="2" stroke-linecap="round"/></svg>
+            <div class="criterion-txt"><span class="lede"><b>Contracts adversarial to the DEX router</b> (clown taxes, honeypots, LP locks without timelock) get flagged.</span></div>
+          </div>
+          <div class="criterion">
+            <svg class="crit-icon" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="var(--slate)" stroke-width="2"/><path d="M11 6v5l3 2" stroke="var(--slate)" stroke-width="2" stroke-linecap="round"/></svg>
+            <div class="criterion-txt"><span class="lede">Everything else is <b>HOLD</b> until the gatekeeper says otherwise.</span></div>
+          </div>
+        </div>
+        <div class="gate-col">
+          <h3>Recent ledger</h3>
+          <div class="ledger-rows">
+            <div class="ledger-entry"><span class="tok">BOPE</span><span class="meta">minted · verified · pool live</span><span class="stamp-pill cleared">cleared</span></div>
+            <div class="ledger-entry"><span class="tok">HIRO</span><span class="meta">minted · under review</span><span class="stamp-pill held">held</span></div>
+            <div class="ledger-entry"><span class="tok">PLINK</span><span class="meta">flagged — clown tax 25%</span><span class="stamp-pill flagged">flagged</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="console">
+    <div class="section-label">Operator console</div>
+    <h2 class="section-title">Drive the <em>machine</em>.</h2>
+    <div class="console">
+      <div class="console-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="console-title">botlaunch console — live testnet 968</span>
+        <span id="gateState">gate: —</span>
+      </div>
+      <div class="console-body">
+        <div class="cons-group">
+          <h4>Ⅰ · Mint a token</h4>
+          <div class="cons-field"><label>Name</label><input id="tk_name" placeholder="Bope Coin"></div>
+          <div class="cons-field"><label>Symbol</label><input id="tk_symbol" placeholder="BOPE"></div>
+          <div class="cons-field"><label>Supply</label><input id="tk_supply" type="number" min="0" step="1" value="1000000"></div>
+          <button class="btn primary cons-btn" id="b_create">createToken →</button>
+          <div class="mint-result" id="mint_result">token minted.</div>
+          <div class="cons-sub">The full supply lands in your wallet as <code>tx.from</code>.</div>
+        </div>
+        <div class="cons-group">
+          <h4>Ⅱ · Hand it to the pool engine</h4>
+          <div class="cons-field"><label>Token address</label><input id="pool_tok" placeholder="0x… minted token"></div>
+          <div class="cons-field"><label>Base quote</label><input id="pool_base" placeholder="W-BOT 0x…"></div>
+          <div class="cons-field"><label>Fee tier</label>
+            <select id="pool_fee">
+              <option value="100">0.01% micro</option>
+              <option value="500">0.05% standard</option>
+              <option value="3000" selected>0.30% meme</option>
+              <option value="10000">1.00% deep</option>
+            </select>
+          </div>
+          <button class="btn primary cons-btn" id="b_pool">ensurePool →</button>
+          <div class="cons-sub">Gated — will revert with <code>NotVerified</code> while the gate is on and your token isn't cleared.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="operator-panel">
+    <div class="section-label">Gatekeeper controls · owner only</div>
+    <div class="gate-panel">
+      <div class="gate-grid">
+        <div class="gate-col">
+          <h3>Verify a token</h3>
+          <div class="cons-field"><label>Token address</label><input id="vf_tok" placeholder="0x…"></div>
+          <div class="cons-field"><label>Status</label><select id="vf_on"><option value="true">verified → cleared</option><option value="false">revoke</option></select></div>
+          <button class="btn cons-btn" id="b_verify">setVerified →</button>
+        </div>
+        <div class="gate-col">
+          <h3>Gate master switch</h3>
+          <div class="cons-field"><label>State</label><select id="gt_on"><option value="true">enforce listing gate</option><option value="false">open the gate</option></select></div>
+          <button class="btn cons-btn" id="b_gate">setGating →</button>
+          <div class="cons-sub" style="margin-top:10px;">Turning the gate OFF lets anyone list. Turning it ON re-arms <code>NotVerified</code> for everything unverified.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <div class="section-label">Roadmap</div>
+    <h2 class="section-title">What ships <em>next</em>.</h2>
+    <div class="roadmap">
+      <div class="rm-item">
+        <h3>Liquidity locker <span class="rm-tag next">next</span></h3>
+        <p>A proper time-locked LP locker, separate from the router path so rug pressure can never close a listed pool. Audited before integration.</p>
+      </div>
+      <div class="rm-item">
+        <h3>Two-key wall <span class="rm-tag next">next</span></h3>
+        <p>Gatekeeper key split: owner signs mints + pulls, a second signer signs list/admit. On-chain, not a promise in a README.</p>
+      </div>
+      <div class="rm-item">
+        <h3>Pedigree explorer <span class="rm-tag parked">parked</span></h3>
+        <p>A read-only explorer: who minted, which pools cleared, LP positions live — resistance to "looks fine, trust me" memecoins.</p>
+      </div>
+      <div class="rm-item">
+        <h3>Metadata registry <span class="rm-tag parked">parked</span></h3>
+        <p>On-chain URI record per token for dApps and aggregators to pull founder, launch date, and gate status without special-casing.</p>
+      </div>
+      <div class="rm-item">
+        <h3>Sandbox mainnet <span class="rm-tag live">live</span></h3>
+        <p>Full starting block copy of BOT Chain: same contracts, same router, no whales, harsher taxes. Testing ground for every micro-launch.</p>
+      </div>
+      <div class="rm-item">
+        <h3>Base and BOT rails <span class="rm-tag live">live</span></h3>
+        <p>Same stack on Base, then native BOT Chain. One factory per chain, one wrapper <code>gate</code> per factory.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="disclaimer">
+    <b>DISCLAIMER.</b> BotLaunch is developer tooling: it mints ERC-20s and creates pools on BOT Chain V3-compatible DEX rails. Gate status is a chain-of-custody signal, not a legal or financial opinion. Past clearances do not predict future performance, liquidity is <i>yours</i> to add, and nothing here promises yields, price, or protection from your own market. DYOR.
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<footer>
+  <div class="addr-field"><span>factory</span><input id="faddr" size="46"></div>
+  <div><a href="#" id="clearLog">clear log</a> · <span>rpc.bohr.life · testnet 968</span></div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
