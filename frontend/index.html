@@ -264,6 +264,25 @@
     .addr-field{width:100%;}
     .addr-field input{width:100%;flex:1;min-width:0;}
   }
+  .wp-prose{color:var(--ink);font-size:15.5px;line-height:1.65;}
+  .wp-prose p{margin:0 0 16px;}
+  .wp-sub{margin-top:32px;margin-bottom:16px;font-size:20px;font-weight:800;color:var(--ink);}
+  .wp-sub em{color:var(--seal);font-style:italic;}
+  .wp-list{margin:0 0 16px;padding-left:20px;color:var(--muted);font-size:15px;line-height:1.65;}
+  .wp-list li{margin-bottom:6px;}
+  .wp-list li b{color:var(--ink);}
+  .wp-table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:14px;}
+  .wp-table th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--line);color:var(--muted-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;}
+  .wp-table td{padding:10px 14px;border-bottom:1px solid var(--line);color:var(--muted);vertical-align:top;}
+  .wp-table td:first-child{color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;white-space:nowrap;}
+  .wp-flow{font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.8;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px 22px;white-space:pre;overflow-x:auto;margin:0 0 16px;}
+  .wp-callout{background:var(--ink-2);border:1px solid var(--line);border-radius:8px;padding:16px 18px;margin:20px 0 16px;font-size:14.5px;color:var(--muted);line-height:1.65;}
+  .wp-callout b{color:var(--ink);}
+  .wp-rule{width:100%;border:0;border-top:1px solid var(--line);margin:24px 0;}
+  .wp-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;padding:3px 8px;border-radius:3px;text-transform:uppercase;margin-left:8px;vertical-align:middle;}
+  .wp-badge.live{background:var(--green);color:#fff;}
+  .wp-badge.next{background:var(--seal);color:#fff7e8;}
+  .wp-badge.parked{background:var(--slate);color:#f0e9d8;}
 </style>
 </head>
 <body>
@@ -274,6 +293,7 @@
     <a href="#gate">the gate</a>
     <a href="#console">operator console</a>
     <a href="#roadmap">roadmap</a>
+    <a href="#whitepaper">whitepaper</a>
     <span id="navState">read-only</span>
     <button class="btn primary" id="connectBtn">Connect wallet</button>
   </div>
@@ -461,6 +481,132 @@
         <h3>Base and BOT rails <span class="rm-tag live">live</span></h3>
         <p>Same stack on Base, then native BOT Chain. One factory per chain, one wrapper <code>gate</code> per factory.</p>
       </div>
+    </div>
+  </section>
+
+  <section id="whitepaper">
+    <div class="section-label">Whitepaper</div>
+    <h2 class="section-title">BotLaunch — <em>clear the gate, then get a pool.</em></h2>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted-dim);margin-bottom:28px;">Version 1 · Testnet 968 · September 2026</p>
+
+    <div class="gate-panel" style="margin-top:0;">
+      <div class="gate-col" style="padding:22px;">
+        <h3 style="margin:0 0 12px;font-size:18px;">Abstract</h3>
+        <div class="wp-prose">
+          <p>BotLaunch is developer tooling that turns token issuance on BOT Chain into a guarded, two-step flow. A factory contract mints a plain ERC-20 into the creator's wallet. An audited, V3-compatible pool engine creates the liquidity pair on request. And a third-party gatekeeper — never the token creator — approves each listing on-chain, on a two-key wall the creator does not control.</p>
+          <p>Until a token is verified, the pool engine refuses to list it with a <code>NotVerified</code> revert. Verified or not, the token's supply lands in the creator's wallet, its liquidity stays in the creator's hands, and every gate decision is stamped on chain. The result is a chain-of-custody signal for memecoins: honest market intent, a reviewable pedigree, and no silent rugs on audited DEX rails.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="gate-panel" style="margin-top:20px;">
+      <div class="gate-col" style="padding:22px;">
+        <h3 style="margin:0 0 12px;font-size:18px;">The problem: token launch is structurally broken</h3>
+        <div class="wp-prose">
+          <p>Most memecoin launches fail for reasons that are entirely foreseeable:</p>
+        </div>
+        <ul class="wp-list">
+          <li><b>Clown taxes.</b> The contract subtracts 20–30% on every sale, so the DEX router cannot price it. The tax exists to be seen, not for any product reason.</li>
+          <li><b>Honeypots.</b> The creator can block sells outright, trapping everyone who bought in.</li>
+          <li><b>Unlocked LP.</b> The creator holds the LP keys and can pull liquidity the moment price is interesting.</li>
+          <li><b>Renounce ceremonies.</b> The creator "renounces" ownership on a contract where renouncement was always cosmetic, then finds a backdoor later.</li>
+          <li><b>No chain of custody.</b> None of this is visible at listing time. Buyers get a default "sounds fine, trust me" experience.</li>
+        </ul>
+        <div class="wp-callout">
+          <b>Audits help, but audits are a point-in-time opinion.</b> The market needs a gate that stays armed between deployments.
+        </div>
+      </div>
+    </div>
+
+    <div class="gate-panel" style="margin-top:20px;">
+      <div class="gate-col" style="padding:22px;">
+        <h3 style="margin:0 0 12px;font-size:18px;">The gate pattern</h3>
+        <div class="wp-prose">
+          <p>BotLaunch splits issuance from listing responsibility:</p>
+        </div>
+        <ul class="wp-list">
+          <li><b>Anyone can mint.</b> <code>createToken(name, symbol, supply)</code> deploys a plain, taxless ERC-20 minted to <code>tx.from</code>. No ceremony, no permission, no hidden hooks.</li>
+          <li><b>Listing is gated.</b> <code>ensurePool(token, base, fee)</code> pulls or creates the pool on the audited V3 engine — but only if a gatekeeper operator has already flipped <code>setVerified(token, true)</code>. Otherwise it reverts with <code>NotVerified</code>.</li>
+          <li><b>Verification is a business decision, not a technical one.</b> The gatekeeper reviews the token, the team, and the market intent, then stamps the ledger. The stamp is the signal; the contract is the enforcement.</li>
+        </ul>
+        <div class="wp-callout">
+          The gatekeeper can also be switched off at the operator level with <code>setGating(false)</code>, which re-opens listing for everything — the intended escape hatch for a rule-proofed future, not a daily knob.
+        </div>
+      </div>
+    </div>
+
+    <div class="gate-panel" style="margin-top:20px;">
+      <div class="gate-col" style="padding:22px;">
+        <h3 style="margin:0 0 12px;font-size:18px;">Architecture</h3>
+        <table class="wp-table">
+          <thead><tr><th>Component</th><th>Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td>TokenFactory</td><td>Deploys plain, taxless ERC-20s minted to the creator.</td></tr>
+            <tr><td>PoolEngine</td><td>Audited V3-compatible DEX engine; creates and reads back pools.</td></tr>
+            <tr><td>Gatekeeper</td><td>Two-key wall: owner + an independent gatekeeper operator. <code>setVerified</code> stamps the ledger; <code>setGating</code> arms or opens the gate.</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="wp-sub"><em>Issuance flow</em></h4>
+        <div class="wp-flow">createToken(name, symbol, supply)
+      └─► ERC-20 lands in creator wallet (full supply, tx.from)
+
+gatekeeper review ──► setVerified(token, true)
+      └─► ledger stamped "cleared"
+
+ensurePool(token, base, fee)
+      ├─► gate OFF → pool created immediately
+      └─► gate ON  → pool created only after verified
+                     else revert NotVerified
+
+creator adds liquidity (own keys, own LP)</div>
+        <div class="wp-prose"><p>Only 2–3 transactions separate a raw idea from a listed, pooled token — every one of them visible on the ledger.</p></div>
+      </div>
+    </div>
+
+    <div class="gate-panel" style="margin-top:20px;">
+      <div class="gate-col" style="padding:22px;">
+        <h3 style="margin:0 0 12px;font-size:18px;">Security model</h3>
+        <ul class="wp-list">
+          <li><b>Two-key wall.</b> Listing authority sits with a gatekeeper independent of minting authority. One compromised key cannot both mint and list.</li>
+          <li><b><code>NotVerified</code> is an on-chain revert</b>, not a UI warning. Pooling simply cannot happen until the stamp is on the ledger.</li>
+          <li><b>Adversarial contracts are flagged on review</b> — clown taxes, honeypots, LP locks without a timelock — and kept out of the ledger.</li>
+          <li><b>Liquidity is the creator's.</b> The pool is created; the LP is added and held by the creator. BotLaunch never touches it.</li>
+          <li><b>The gate is a chain-of-custody signal</b>, not a legal or financial opinion. "Cleared" means the gatekeeper verified honest intent, not that a token will go up.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="gate-panel" style="margin-top:20px;">
+      <div class="gate-col" style="padding:22px;">
+        <h3 style="margin:0 0 12px;font-size:18px;">Roadmap</h3>
+        <table class="wp-table">
+          <thead><tr><th>Item</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Listing gate + verified readback</td><td>Shipped <span class="wp-badge live">live</span></td></tr>
+            <tr><td>Liquidity locker</td><td>Next <span class="wp-badge next">next</span></td></tr>
+            <tr><td>Two-key signing split</td><td>Next <span class="wp-badge next">next</span></td></tr>
+            <tr><td>Pedigree explorer</td><td>Parked <span class="wp-badge parked">parked</span></td></tr>
+            <tr><td>Metadata registry</td><td>Parked <span class="wp-badge parked">parked</span></td></tr>
+            <tr><td>Sandbox mainnet</td><td>Live <span class="wp-badge live">live</span></td></tr>
+            <tr><td>Base and BOT rails</td><td>Live <span class="wp-badge live">live</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="gate-panel" style="margin-top:20px;">
+      <div class="gate-col" style="padding:22px;">
+        <h3 style="margin:0 0 12px;font-size:18px;">No token</h3>
+        <div class="wp-prose">
+          <p>BotLaunch is tooling, not a token. There is no allocation, no tax, no renounce ceremony to excuse. The product is the gate, and the gate is free to audit.</p>
+        </div>
+      </div>
+    </div>
+
+    <hr class="wp-rule">
+    <div class="wp-prose" style="font-size:13px;color:var(--muted-dim);">
+      <p><b style="color:var(--ink);">Disclaimer.</b> This document describes developer tooling on BOT Chain testnet (968) and BOT-V3-compatible DEX rails. Gate status is a chain-of-custody signal, not investment advice. Past clearances do not predict performance; liquidity is yours to add; nothing here promises yields, price, or protection from your own market. DYOR.</p>
     </div>
   </section>
 
