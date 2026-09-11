@@ -32,15 +32,22 @@ so the decode of "is this safe to list" is never rushed under user pressure.
 3. Lock LP via Liquidity Locker docs at dev-docs.botchain.ai/docs/Liquidity-Locker
 4. Pair token against BOT to earn the 20 percent Scheme A bonus
 
-## Mainnet addresses baked in
+## Roles (two-key wall, live on testnet 968)
+- Owner: `setGating`, role handovers (`proposeOwner`/`proposeGatekeeper`), fee-tier allowlist. Cannot verify tokens.
+- Gatekeeper: `setVerified` only. Cannot touch gating or roles.
+- Both keys start on the deployer — hand the gatekeeper key to a second signer via `proposeGatekeeper` + `acceptGatekeeper` to arm the wall.
+
+## Mainnet addresses (single source: `config/addresses.json`)
 - V3 factory 0x1C51c173323ec11BB4e3C4fD2314c225Dc4b5419
 - Position manager 0xDAc3FcFF004d8a8675b94E44941A1a2e3b240090
 - Universal router 0xaE6ae8630f7A888dEc0B9195C85F7515d5887655
 - WBOT 0xD5452816194a3784dBa983426cCe7c122F4abd30
 - USDT 0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C
 
+`deploy.js` reads `config/addresses.json` (env `V3FACTORY`/`POSITION_MANAGER` override for testnet). Never hand-copy an address — edit the JSON.
+
 ## Commands
 - npm install
-- npx hardhat test
-- npx hardhat run scripts/deploy.js --network botTestnet with V3FACTORY env set
-- npx hardhat run scripts/deploy.js --network botMainnet
+- npm test
+- npm run deploy:testnet (preflight → deploy → verify → changelog)
+- npm run deploy:mainnet

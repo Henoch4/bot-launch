@@ -2,20 +2,30 @@ import * as ethers from 'ethers';
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
-const FACTORY_DEFAULT=`0xA27963D86F6805ED72591d59c58fed96F4fd9c81`;
+const FACTORY_DEFAULT=`0xaE1790ddDD25B2Fa95D4c0528b78F9210F4fA43B`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 
 const FACTORY_ABI=[
 `function owner() view returns (address)`,
+`function gatekeeper() view returns (address)`,
 `function v3factory() view returns (address)`,
 `function positionManager() view returns (address)`,
 `function verified(address) view returns (bool)`,
 `function gatingEnabled() view returns (bool)`,
+`function allTokens(uint256) view returns (address)`,
+`function tokenCount() view returns (uint256)`,
+`function tokenCreator(address) view returns (address)`,
+`function supportedFee(uint24) view returns (bool)`,
 `function createToken(string,string,uint256) returns (address)`,
 `function ensurePool(address,address,uint24) returns (address)`,
 `function setVerified(address,bool)`,
 `function setGating(bool)`,
+`function setFeeTier(uint24,bool)`,
+`function proposeOwner(address)`,
+`function acceptOwner()`,
+`function proposeGatekeeper(address)`,
+`function acceptGatekeeper()`,
 ];
 
 const ERC20_ABI=[
@@ -113,16 +123,19 @@ modal.subscribeAccount(async (state)=>{
         await syncFromProvider(wp);
         updateConnectedUI();
         log(`connected `+account);
+        updateRoleUI();
       }catch(e){log(`connect failed: `+(e.reason||e.shortMessage||e.message));}
     }else{
       updateConnectedUI();
       log(`connected `+account);
+      updateRoleUI();
     }
     if(_connectResolve){_connectResolve(!!signer);_connectResolve=null;}
   }else{
     const was=!!account;
     account=null;signer=null;
     updateDisconnectedUI();
+    updateRoleUI();
     if(was)log(`disconnected`);
     if(_connectResolve){_connectResolve(false);_connectResolve=null;}
   }
@@ -152,7 +165,7 @@ const TICKER_ITEMS=[
   `listings blocked until the gatekeeper verifies your token`,
   `pool created on the audited V3 engine, LP stays yours`,
   `gate is a chain-of-custody signal — not advice, not yolo`,
-  `two-key wall coming next`,
+  `two-key wall live — owner plus gatekeeper`,
   `sandbox mainnet boots first — harsher taxes included`,
 ];
 
@@ -161,7 +174,35 @@ function log(m){
   const d=document.createElement(`div`);
   d.textContent=m;
   el.appendChild(d);
+  while(el.children.length>40)el.removeChild(el.firstChild);
   el.scrollTop=el.scrollHeight;
+}
+
+async function updateRoleUI(){
+  const panel=el(`operator-panel`);
+  const badge=el(`roleBadge`);
+  if(!account){
+    panel.style.display=`none`;
+    if(badge)badge.style.display=`none`;
+    return;
+  }
+  try{
+    const v=factory();
+    const [o,g]=await Promise.all([v.owner(),v.gatekeeper()]);
+    const me=account.toLowerCase();
+    const isOwner=me===o.toLowerCase();
+    const isKeeper=me===g.toLowerCase();
+    panel.style.display=(isOwner||isKeeper)?`block`:`none`;
+    if(badge){
+      badge.style.display=`inline-block`;
+      badge.textContent=isOwner?`owner`:isKeeper?`gatekeeper`:`visitor`;
+      el(`b_verify`).disabled=!isKeeper&&!isOwner;
+      el(`b_gate`).disabled=!isOwner;
+      el(`opNote`).textContent=isOwner?`owner: full control (gating + roles)`
+        :isKeeper?`gatekeeper: verify only — gating switch is owner-only`
+        :`connected as visitor — operator controls hidden (would revert on-chain)`;
+    }
+  }catch(e){ panel.style.display=`none`; }
 }
 function el(id){ return document.getElementById(id); }
 function shorten(a){ return a ? a.slice(0,6)+`…`+a.slice(-4) : ``; }
@@ -221,13 +262,16 @@ async function readGateState(){
     const p=new ethers.JsonRpcProvider(RPC);
     const v=new ethers.Contract(a,FACTORY_ABI,p);
     const on=await v.gatingEnabled();
-    const owner=await v.owner();
+    const [owner,keeper]=await Promise.all([v.owner(),v.gatekeeper()]);
     const eng=await v.v3factory();
     el(`ledgerGateState`).textContent=on?`gate clocked ON — enforced`:`gate off — open listings`;
     el(`gateState`).textContent=on?`gate: ENFORCED`:`gate: OPEN`;
     el(`kingGate`).textContent=on?`1/1`:`0/1 (open listings)`;
     el(`ledgerEngine`).textContent=shorten(eng);
-    log(`gate state: `+(on?`ENFORCED`:`OPEN`)+` · owner `+shorten(owner)+` · V3 engine `+shorten(eng));
+    const kg=el(`keeperLine`);
+    if(kg)kg.textContent=`owner ${shorten(owner)} · gatekeeper ${shorten(keeper)}`;
+    log(`gate state: `+(on?`ENFORCED`:`OPEN`)+` · owner `+shorten(owner)+` · gatekeeper `+shorten(keeper)+` · V3 engine `+shorten(eng));
+    updateRoleUI();
     return on;
   }catch(e){
     log(`read gate state failed: `+(e.shortMessage||e.message));
@@ -272,9 +316,42 @@ async function doCreate(){
           el(`mint_result`).style.display=`block`;
           el(`mint_result`).textContent=`token ${s} · ${tok}`;
           log(`✓ minted token at ${tok}`);
+          readRecentLedger();
         }
       }catch(e){}
     }
+  }
+}
+
+async function readRecentLedger(){
+  const box=el(`ledgerRows`);
+  if(!box)return;
+  try{
+    const p=new ethers.JsonRpcProvider(RPC);
+    const v=new ethers.Contract(el(`faddr`).value.trim()||FACTORY_DEFAULT,FACTORY_ABI,p);
+    const n=Number(await v.tokenCount());
+    if(n===0){ box.innerHTML=`<div class="ledger-entry"><span class="tok">—</span><span class="meta">no tokens minted on this factory yet</span><span class="stamp-pill held">empty</span></div>`; return; }
+    const ids=[];
+    for(let i=Math.max(0,n-5);i<n;i++)ids.push(i);
+    const rows=await Promise.all(ids.map(async (i)=>{
+      const t=await v.allTokens(i);
+      const [tok,isV,cr]=await Promise.all([
+        erc20(t),
+        v.verified(t),
+        v.tokenCreator(t).catch(()=>`0x0000000000000000000000000000000000000000`),
+      ]);
+      let name=`?`,sym=`?`;
+      try{ [name,sym]=await Promise.all([tok.name(),tok.symbol()]); }catch(e){}
+      return {t,name,sym,isV,cr};
+    }));
+    rows.reverse();
+    box.innerHTML=rows.map((r)=>
+      `<div class="ledger-entry"><span class="tok">${r.sym}</span>`+
+      `<span class="meta">${r.name} · minted by ${shorten(r.cr)}${r.isV?` · verified · pool live`:` · under review`}</span>`+
+      `<span class="stamp-pill ${r.isV?`cleared`:`held`}">${r.isV?`cleared`:`held`}</span></div>`
+    ).join(``);
+  }catch(e){
+    box.innerHTML=`<div class="ledger-entry"><span class="tok">—</span><span class="meta">could not read registry</span><span class="stamp-pill held">offline</span></div>`;
   }
 }
 
@@ -283,6 +360,9 @@ async function doPool(){
   const b=el(`pool_base`).value.trim();
   const fee=Number(el(`pool_fee`).value);
   if(!t||!b){ log(`pool: token and base required`); return; }
+  try{
+    if(!await factory().supportedFee(fee)){ log(`pool: fee tier ${fee} not supported by this factory — tx would revert BadFeeTier`); return; }
+  }catch(e){}
   const rc=await send(factory().ensurePool(t,b,fee),`ensurePool (${shorten(t)})`);
   if(rc){
     const iface=new ethers.Interface(FACTORY_ABI);
@@ -327,10 +407,12 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`b_verify`).addEventListener(`click`,doVerify);
   el(`b_gate`).addEventListener(`click`,doGate);
   el(`clearLog`).addEventListener(`click`,(e)=>{ e.preventDefault(); el(`log`).innerHTML=``; });
-  el(`faddr`).addEventListener(`change`,readGateState);
+  el(`faddr`).addEventListener(`change`,()=>{ readGateState(); readRecentLedger(); updateRoleUI(); });
   el(`vf_tok`).addEventListener(`change`,readTokenStatus);
   readGateState();
   readTokenStatus();
+  readRecentLedger();
+  updateRoleUI();
   setTimeout(async ()=>{
     try{
       if(!signer&&modal.getIsConnectedState()){

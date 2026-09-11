@@ -318,6 +318,7 @@
           <div class="ledger-row"><span class="lbl">Token</span><span class="val"><em>BotToken</em> · ERC-20 minted to you</span></div>
           <div class="ledger-row"><span class="lbl">Pool engine</span><span class="val">audited V3 · <em id="ledgerEngine">fetching…</em></span></div>
           <div class="ledger-row"><span class="lbl">Guard</span><span class="val">two-key wall — <em>owner</em> + <em>gatekeeper</em></span></div>
+          <div class="ledger-row"><span class="lbl">Keys</span><span class="val"><em id="keeperLine">fetching…</em></span></div>
           <div class="ledger-row"><span class="lbl">State</span><span class="val"><em id="ledgerGateState">fetching…</em></span></div>
         </div>
       </div>
@@ -364,11 +365,11 @@
     <div class="gate-panel">
       <div class="gate-top">
         <div class="gtitle">Gate ledger · status board</div>
-        <div class="gate-note">listings blocked until the operator verifies · stamp flipped on-chain by <code>setVerified</code> — rows below are illustrative, the live state is the <em>gate: ENFORCED / OPEN</em> readout above</div>
-      </div>
-      <div class="gate-grid">
-        <div class="gate-col">
-          <h3>What makes the cut</h3>
+          <div class="gate-note">listings blocked until the gatekeeper verifies · stamp flipped on-chain by <code>setVerified</code> — rows below are the last 5 mints read live from the registry</div>
+        </div>
+        <div class="gate-grid">
+          <div class="gate-col">
+            <h3>What makes the cut</h3>
           <div class="criterion">
             <svg class="crit-icon" viewBox="0 0 22 22"><circle cx="11" cy="11" r="9" fill="none" stroke="var(--green)" stroke-width="2"/><path d="M7 11.5l2.8 2.8L15 8.6" stroke="var(--green)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <div class="criterion-txt"><span class="lede">Operator review, honest market intent, audited router path.</span></div>
@@ -384,10 +385,8 @@
         </div>
         <div class="gate-col">
           <h3>Recent ledger</h3>
-          <div class="ledger-rows">
-            <div class="ledger-entry"><span class="tok">BOPE</span><span class="meta">minted · verified · pool live</span><span class="stamp-pill cleared">cleared</span></div>
-            <div class="ledger-entry"><span class="tok">HIRO</span><span class="meta">minted · under review</span><span class="stamp-pill held">held</span></div>
-            <div class="ledger-entry"><span class="tok">PLINK</span><span class="meta">flagged — clown tax 25%</span><span class="stamp-pill flagged">flagged</span></div>
+          <div class="ledger-rows" id="ledgerRows">
+            <div class="ledger-entry"><span class="tok">—</span><span class="meta">reading registry…</span><span class="stamp-pill held">…</span></div>
           </div>
         </div>
       </div>
@@ -433,7 +432,8 @@
   </section>
 
   <section id="operator-panel">
-    <div class="section-label">Gatekeeper controls · owner only</div>
+    <div class="section-label">Gatekeeper controls · <span id="roleBadge">owner only</span></div>
+    <div class="cons-sub" id="opNote" style="margin-bottom:10px;">connect an operator wallet to use these controls</div>
     <div class="gate-panel">
       <div class="gate-grid">
         <div class="gate-col">
@@ -462,8 +462,8 @@
         <p>A proper time-locked LP locker, separate from the router path so rug pressure can never close a listed pool. Audited before integration.</p>
       </div>
       <div class="rm-item">
-        <h3>Two-key wall <span class="rm-tag next">next</span></h3>
-        <p>Gatekeeper key split: owner signs mints + pulls, a second signer signs list/admit. On-chain, not a promise in a README.</p>
+        <h3>Two-key wall <span class="rm-tag live">live</span></h3>
+        <p>Gatekeeper key split is on-chain: owner holds gating + roles, a separate gatekeeper signs list/admit. Hand over the second key with <code>proposeGatekeeper</code> + <code>acceptGatekeeper</code>.</p>
       </div>
       <div class="rm-item">
         <h3>Pedigree explorer <span class="rm-tag parked">parked</span></h3>
@@ -478,8 +478,8 @@
         <p>Full starting block copy of BOT Chain: same contracts, same router, no whales, harsher taxes. Testing ground for every micro-launch.</p>
       </div>
       <div class="rm-item">
-        <h3>Base and BOT rails <span class="rm-tag live">live</span></h3>
-        <p>Same stack on Base, then native BOT Chain. One factory per chain, one wrapper <code>gate</code> per factory.</p>
+        <h3>Base and BOT rails <span class="rm-tag next">next</span></h3>
+        <p>Same stack on Base, then native BOT Chain. One factory per chain, one wrapper <code>gate</code> per factory. No Base deployment exists yet — testnet first.</p>
       </div>
     </div>
   </section>
@@ -585,11 +585,11 @@ creator adds liquidity (own keys, own LP)</div>
           <tbody>
             <tr><td>Listing gate + verified readback</td><td>Shipped <span class="wp-badge live">live</span></td></tr>
             <tr><td>Liquidity locker</td><td>Next <span class="wp-badge next">next</span></td></tr>
-            <tr><td>Two-key signing split</td><td>Next <span class="wp-badge next">next</span></td></tr>
+            <tr><td>Two-key signing split</td><td>Live <span class="wp-badge live">live</span></td></tr>
             <tr><td>Pedigree explorer</td><td>Parked <span class="wp-badge parked">parked</span></td></tr>
             <tr><td>Metadata registry</td><td>Parked <span class="wp-badge parked">parked</span></td></tr>
             <tr><td>Sandbox mainnet</td><td>Live <span class="wp-badge live">live</span></td></tr>
-            <tr><td>Base and BOT rails</td><td>Live <span class="wp-badge live">live</span></td></tr>
+            <tr><td>Base and BOT rails</td><td>Next <span class="wp-badge next">next</span></td></tr>
           </tbody>
         </table>
       </div>

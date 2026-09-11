@@ -75,11 +75,11 @@ Only 2–3 transactions separate a raw idea from a listed, pooled token — ever
 |---|---|
 | Listing gate + verified readback | Shipped (testnet 968) |
 | Liquidity locker — time-locked LP separate from the router path, so rug pressure can never close a listed pool | Next |
-| Two-key signing split — gatekeeper key split so no single key signer can arm or disarm alone | Next |
+| Two-key signing split — owner holds gating + roles, gatekeeper alone signs list/admit; neither key does both | Live (testnet 968) |
 | Pedigree explorer — who minted, which pools cleared, LP positions live | Parked |
 | Metadata registry — on-chain URI per token for dApps/aggregators | Parked |
 | Sandbox mainnet — full starting-block copy of BOT Chain for micro-launches | Live |
-| Base and BOT rails — one factory, one gate wrapper per chain | Live |
+| Base and BOT rails — one factory, one gate wrapper per chain | Next (no Base deployment yet) |
 
 ## No token
 

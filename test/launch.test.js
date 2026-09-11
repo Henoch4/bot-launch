@@ -68,10 +68,61 @@ it(`reverts deploy with zero position manager`, async function () {
   it(`only owner can verify tokens or toggle gating`, async function () {
     const { owner, user, factory } = await deploy();
     await expect(factory.connect(user).setVerified(owner.address, true))
-      .to.be.revertedWithCustomError(factory, `NotOwner`);
+      .to.be.revertedWithCustomError(factory, `NotGatekeeper`);
     await expect(factory.connect(user).setGating(true))
       .to.be.revertedWithCustomError(factory, `NotOwner`);
     await expect(factory.connect(owner).setVerified(ethers.ZeroAddress, true))
       .to.be.revertedWithCustomError(factory, `ZeroAddr`);
+  });
+
+  it(`gatekeeper verifies but cannot toggle gating; owner cannot verify after handover`, async function () {
+    const { owner, user, factory } = await deploy();
+    await factory.proposeGatekeeper(user.address);
+    await factory.connect(user).acceptGatekeeper();
+    expect(await factory.gatekeeper()).to.equal(user.address);
+    await expect(factory.connect(user).setVerified(owner.address, true)).to.emit(factory, `Verified`);
+    await expect(factory.connect(user).setGating(true))
+      .to.be.revertedWithCustomError(factory, `NotOwner`);
+    await expect(factory.setVerified(owner.address, true))
+      .to.be.revertedWithCustomError(factory, `NotGatekeeper`);
+    await expect(factory.connect(user).proposeGatekeeper(owner.address))
+      .to.be.revertedWithCustomError(factory, `NotOwner`);
+  });
+
+  it(`owner handover is two-step, typo cannot brick`, async function () {
+    const { owner, user, factory } = await deploy();
+    await factory.proposeOwner(user.address);
+    expect(await factory.owner()).to.equal(owner.address);
+    await expect(factory.connect(user).acceptOwner()).to.not.be.reverted;
+    expect(await factory.owner()).to.equal(user.address);
+    await expect(factory.proposeOwner(owner.address))
+      .to.be.revertedWithCustomError(factory, `NotOwner`);
+  });
+
+  it(`ensurePool rejects unsupported fee tiers with legible error`, async function () {
+    const { owner, user, mock, factory } = await deploy();
+    const addr = await factory.createToken.staticCall(`Test`, `TST`, 1000);
+    await factory.createToken(`Test`, `TST`, 1000);
+    await expect(factory.ensurePool(addr, owner.address, 12345))
+      .to.be.revertedWithCustomError(factory, `BadFeeTier`);
+    await factory.setFeeTier(12345, true);
+    await mock.setNextPool(user.address);
+    await expect(factory.ensurePool(addr, owner.address, 12345)).to.emit(factory, `PoolReady`);
+    await expect(factory.connect(user).setFeeTier(500, false))
+      .to.be.revertedWithCustomError(factory, `NotOwner`);
+  });
+
+  it(`token registry enumerates every mint`, async function () {
+    const { owner, user, factory } = await deploy();
+    expect(await factory.tokenCount()).to.equal(0);
+    const a = await factory.createToken.staticCall(`A`, `A`, 100);
+    await factory.createToken(`A`, `A`, 100);
+    const b = await factory.connect(user).createToken.staticCall(`B`, `B`, 200);
+    await factory.connect(user).createToken(`B`, `B`, 200);
+    expect(await factory.tokenCount()).to.equal(2);
+    expect(await factory.allTokens(0)).to.equal(a);
+    expect(await factory.allTokens(1)).to.equal(b);
+    expect(await factory.tokenCreator(a)).to.equal(owner.address);
+    expect(await factory.tokenCreator(b)).to.equal(user.address);
   });
 });

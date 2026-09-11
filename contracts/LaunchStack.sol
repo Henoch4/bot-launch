@@ -65,34 +65,89 @@ interface IBotPositionManager {
 
 contract TokenFactory {
     address public owner;
+    address public gatekeeper;
+    address public pendingOwner;
+    address public pendingGatekeeper;
     address public v3factory;
     address public positionManager;
     mapping(address => bool) public verified;
     bool public gatingEnabled;
+    address[] public allTokens;
+    mapping(address => address) public tokenCreator;
+    mapping(uint24 => bool) public supportedFee;
     event TokenCreated(address indexed token, address indexed creator, uint256 supply);
     event PoolReady(address indexed token, address indexed base, address pool, uint24 fee);
     event Verified(address indexed token, bool verified);
     event GatingSet(bool enabled);
+    event OwnerProposed(address indexed newOwner);
+    event OwnerAccepted(address indexed newOwner);
+    event GatekeeperProposed(address indexed newGatekeeper);
+    event GatekeeperAccepted(address indexed newGatekeeper);
+    event FeeTierSet(uint24 fee, bool supported);
     error NotOwner();
+    error NotGatekeeper();
+    error NotPending();
     error ZeroAddr();
     error NotVerified();
+    error BadFeeTier();
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+    modifier onlyGatekeeper() {
+        if (msg.sender != gatekeeper) revert NotGatekeeper();
         _;
     }
     constructor(address _v3factory, address _positionManager) {
         if (_v3factory == address(0) || _positionManager == address(0)) revert ZeroAddr();
         owner = msg.sender;
+        gatekeeper = msg.sender;
         v3factory = _v3factory;
         positionManager = _positionManager;
+        supportedFee[100] = true;
+        supportedFee[500] = true;
+        supportedFee[3000] = true;
+        supportedFee[10000] = true;
+    }
+    // Two-step handover so a typo'd address cannot brick either key.
+    function proposeOwner(address o) external onlyOwner {
+        if (o == address(0)) revert ZeroAddr();
+        pendingOwner = o;
+        emit OwnerProposed(o);
+    }
+    function acceptOwner() external {
+        if (msg.sender != pendingOwner) revert NotPending();
+        owner = pendingOwner;
+        pendingOwner = address(0);
+        emit OwnerAccepted(owner);
+    }
+    function proposeGatekeeper(address g) external onlyOwner {
+        if (g == address(0)) revert ZeroAddr();
+        pendingGatekeeper = g;
+        emit GatekeeperProposed(g);
+    }
+    function acceptGatekeeper() external {
+        if (msg.sender != pendingGatekeeper) revert NotPending();
+        gatekeeper = pendingGatekeeper;
+        pendingGatekeeper = address(0);
+        emit GatekeeperAccepted(gatekeeper);
+    }
+    function setFeeTier(uint24 fee, bool supported) external onlyOwner {
+        supportedFee[fee] = supported;
+        emit FeeTierSet(fee, supported);
+    }
+    function tokenCount() external view returns (uint256) {
+        return allTokens.length;
     }
     function createToken(string memory n, string memory s, uint256 supply) external returns (address t) {
         BotToken token = new BotToken(n, s, supply, msg.sender);
         t = address(token);
+        allTokens.push(t);
+        tokenCreator[t] = msg.sender;
         emit TokenCreated(t, msg.sender, supply);
     }
-    // Listing gate: only the operator can admit tokens to the DEX pool path.
-    function setVerified(address token, bool v) external onlyOwner {
+    // Listing gate: only the gatekeeper admits tokens to the DEX pool path.
+    function setVerified(address token, bool v) external onlyGatekeeper {
         if (token == address(0)) revert ZeroAddr();
         verified[token] = v;
         emit Verified(token, v);
@@ -103,6 +158,7 @@ contract TokenFactory {
     }
     function ensurePool(address token, address base, uint24 fee) external returns (address pool) {
         if (token == address(0) || base == address(0)) revert ZeroAddr();
+        if (!supportedFee[fee]) revert BadFeeTier();
         if (gatingEnabled && verified[token] != true) revert NotVerified();
         pool = IBotV3Factory(v3factory).getPool(token, base, fee);
         if (pool == address(0)) {
