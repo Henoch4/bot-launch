@@ -3,6 +3,7 @@ import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
 const FACTORY_DEFAULT=`0xaE1790ddDD25B2Fa95D4c0528b78F9210F4fA43B`;
+const LOCKER_DEFAULT=`0x9276644dC1E26a6d183a5e76321BF6e92a0c2d67`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
 
@@ -29,11 +30,16 @@ const FACTORY_ABI=[
 ];
 
 const ERC20_ABI=[
-`function name() view returns (string)`,
-`function symbol() view returns (string)`,
-`function balanceOf(address) view returns (uint256)`,
-`function approve(address,uint256) returns (bool)`,
-`function transfer(address,uint256) returns (bool)`,
+  `function name() view returns (string)`,
+  `function symbol() view returns (string)`,
+  `function balanceOf(address) view returns (uint256)`,
+  `function approve(address,uint256) returns (bool)`,
+  `function transfer(address,uint256) returns (bool)`,
+];
+
+const LOCKER_ABI=[
+  `function lockLiquidity(tuple address token,address base,uint24 fee,uint160 sqrtPriceX96,int24 tickLower,int24 tickUpper,uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,uint64 lockDuration,uint256 deadline) external returns (uint256 id,uint256 tokenId)`,
+  `function withdraw(uint256 id) external`
 ];
 
 let signer=null;
@@ -216,7 +222,11 @@ function erc20(a){
   const p=signer||new ethers.JsonRpcProvider(RPC);
   return new ethers.Contract(a,ERC20_ABI,p);
 }
-
+function locker(){
+  const a=LOCKER_DEFAULT;
+  const p=signer||new ethers.JsonRpcProvider(RPC);
+  return new ethers.Contract(a,LOCKER_ABI,p);
+}
 async function connect(){
   try{
     if(modal.getIsConnectedState()){
@@ -392,6 +402,61 @@ async function doGate(){
   readGateState();
 }
 
+async function doLock() {
+  const t = el(`lock_token`).value.trim();
+  const b = el(`lock_base`).value.trim();
+  const f = Number(el(`lock_fee`).value);
+  const a0 = el(`lock_amount0`).value.trim();
+  const a1 = el(`lock_amount1`).value.trim();
+  const d = el(`lock_duration`).value.trim();
+  if (!t || !b || !a0 || !a1 || !d) { log(`lock: token, base, amounts, duration required`); return; }
+  if (!/^0x[0-9a-fA-F]{40}$/.test(t) || !/^0x[0-9a-fA-F]{40}$/.test(b)) { log(`lock: invalid address`); return; }
+  const A0 = ethers.parseEther(a0);
+  const A1 = ethers.parseEther(a1);
+  const dur = Number(d);
+  if (isNaN(dur) || dur <= 0) { log(`lock: invalid duration`); return; }
+  const tokC = erc20(t);
+  const baseC = erc20(b);
+  const lockerAddr = LOCKER_DEFAULT;
+  await send(tokC.approve(lockerAddr, A0), `approve token`);
+  await send(baseC.approve(lockerAddr, A1), `approve base`);
+  const provider = signer || new ethers.JsonRpcProvider(RPC);
+  const blk = await provider.getBlock();
+  const deadline = BigInt(blk.timestamp) + BigInt(dur) + BigInt(60);
+  const Q96 = 2n ** 96n;
+  const sqrtP = Q96;
+  const tickL = -600;
+  const tickU = 600;
+  const min0 = 0n;
+  const min1 = 0n;
+  const lockerC = locker();
+  const rc = await send(
+    lockerC.lockLiquidity([
+      t, b, f, sqrtP, tickL, tickU, A0, A1, min0, min1, BigInt(dur), deadline
+    ], `lockLiquidity`),
+    `lock liquidity`
+  );
+  if (rc) {
+    const iface = new ethers.Interface(LOCKER_ABI);
+    for (const l of rc.logs) {
+      try {
+        const ev = iface.parseLog(l);
+        if (ev && ev.name === `LockCreated`) {
+          log(`✓ lock id=${ev.args.id} tokenId=${ev.args.tokenId}`);
+          el(`lock_result`).textContent = `locked id=${ev.args.id} tokenId=${ev.args.tokenId}`;
+        }
+      } catch (_) {}
+    }
+  }
+}
+async function doWithdraw() {
+  const idS = el(`lock_withdraw_id`).value.trim();
+  if (!idS) { log(`withdraw: ID required`); return; }
+  const id = BigInt(idS);
+  await send(locker().withdraw(id), `withdraw(${id})`);
+  el(`lock_result`).textContent = `withdrawn lock ID ${id}`;
+}
+
 function buildTicker(){
   const track=el(`tickerTrack`);
   const half=TICKER_ITEMS.map(t=>`<span>→ ${t}</span>`).join(``);
@@ -406,7 +471,9 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`b_pool`).addEventListener(`click`,doPool);
   el(`b_verify`).addEventListener(`click`,doVerify);
   el(`b_gate`).addEventListener(`click`,doGate);
-  el(`clearLog`).addEventListener(`click`,(e)=>{ e.preventDefault(); el(`log`).innerHTML=``; });
+  el(`b_lock`).addEventListener(`click`,doLock);
+el(`b_withdraw`).addEventListener(`click`,doWithdraw);
+el(`clearLog`).addEventListener(`click`,(e)=>{ e.preventDefault(); el(`log`).innerHTML=``; });
   el(`faddr`).addEventListener(`change`,()=>{ readGateState(); readRecentLedger(); updateRoleUI(); });
   el(`vf_tok`).addEventListener(`change`,readTokenStatus);
   readGateState();

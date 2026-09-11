@@ -412,22 +412,43 @@
           <div class="mint-result" id="mint_result">token minted.</div>
           <div class="cons-sub">The full supply lands in your wallet as <code>tx.from</code>.</div>
         </div>
-        <div class="cons-group">
-          <h4>Ⅱ · Hand it to the pool engine</h4>
-          <div class="cons-field"><label>Token address</label><input id="pool_tok" placeholder="0x… minted token"></div>
-          <div class="cons-field"><label>Base quote</label><input id="pool_base" placeholder="W-BOT 0x…"></div>
-          <div class="cons-field"><label>Fee tier</label>
-            <select id="pool_fee">
-              <option value="100">0.01% micro</option>
-              <option value="500">0.05% standard</option>
-              <option value="3000" selected>0.30% meme</option>
-              <option value="10000">1.00% deep</option>
-            </select>
-          </div>
-          <button class="btn primary cons-btn" id="b_pool">ensurePool →</button>
-          <div class="cons-sub">Gated — will revert with <code>NotVerified</code> while the gate is on and your token isn't cleared.</div>
-        </div>
-      </div>
+<div class="cons-group">
+           <h4>Ⅱ · Hand it to the pool engine</h4>
+           <div class="cons-field"><label>Token address</label><input id="pool_tok" placeholder="0x… minted token"></div>
+           <div class="cons-field"><label>Base quote</label><input id="pool_base" placeholder="W-BOT 0x…"></div>
+           <div class="cons-field"><label>Fee tier</label>
+             <select id="pool_fee">
+               <option value="100">0.01% micro</option>
+               <option value="500">0.05% standard</option>
+               <option value="3000" selected>0.30% meme</option>
+               <option value="10000">1.00% deep</option>
+             </select>
+           </div>
+           <button class="btn primary cons-btn" id="b_pool">ensurePool →</button>
+           <div class="cons-sub">Gated — will revert with <code>NotVerified</code> while the gate is on and your token isn't cleared.</div>
+         </div>
+         <div class="cons-group">
+           <h4>Ⅲ · Liquidity locker</h4>
+           <div class="cons-field"><label>Token address</label><input id="lock_token" placeholder="0x… token"></div>
+           <div class="cons-field"><label>Base address</label><input id="lock_base" placeholder="0x… W-BOT"></div>
+           <div class="cons-field"><label>Fee tier</label>
+             <select id="lock_fee">
+               <option value="100">0.01% micro</option>
+               <option value="500">0.05% standard</option>
+               <option value="3000" selected>0.30% meme</option>
+               <option value="10000">1.00% deep</option>
+             </select>
+           </div>
+           <div class="cons-field"><label>Amount token</label><input id="lock_amount0" type="number" min="0" step="any" placeholder="e.g. 10"></div>
+           <div class="cons-field"><label>Amount base</label><input id="lock_amount1" type="number" min="0" step="any" placeholder="e.g. 10"></div>
+           <div class="cons-field"><label>Lock duration (sec)</label><input id="lock_duration" type="number" min="0" value="60"></div>
+           <button class="btn primary cons-btn" id="b_lock">lock liquidity →</button>
+           <div class="cons-field"><label>Lock ID to withdraw</label><input id="lock_withdraw_id" type="number" min="0" placeholder="e.g. 1"></button>
+           <button class="btn cons-btn" id="b_withdraw">withdraw →</button>
+           <div class="mint-result" id="lock_result"> — </div>
+           <div class="cons-sub">Note: you must approve the locker contract to spend your tokens first.</div>
+         </div>
+       </div>
     </div>
   </section>
 
