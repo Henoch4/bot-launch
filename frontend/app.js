@@ -1,3 +1,7 @@
+import * as ethers from 'ethers';
+import { createAppKit } from '@reown/appkit';
+import { EthersAdapter } from '@reown/appkit-adapter-ethers';
+
 const FACTORY_DEFAULT=`0xA27963D86F6805ED72591d59c58fed96F4fd9c81`;
 const RPC=`https://rpc.bohr.life`;
 const EXPLORER=`https://scan.bohr.life`;
@@ -24,6 +28,124 @@ const ERC20_ABI=[
 
 let signer=null;
 let account=null;
+
+const PROJECT_ID=`f018499b1e4a94d961ab67aeeeff3254`;
+
+const botTestnet={
+  id:968,
+  chainNamespace:`eip155`,
+  caipNetworkId:`eip155:968`,
+  name:`BOT Chain Testnet`,
+  nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},
+  rpcUrls:{default:{http:[RPC]}},
+  blockExplorers:{default:{name:`BOT Scan`,url:EXPLORER}},
+};
+const botMainnet={
+  id:677,
+  chainNamespace:`eip155`,
+  caipNetworkId:`eip155:677`,
+  name:`BOT Chain`,
+  nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},
+  rpcUrls:{default:{http:[`https://rpc.botchain.ai`]}},
+  blockExplorers:{default:{name:`BOT Scan`,url:`https://scan.botchain.ai`}},
+};
+
+const modal=createAppKit({
+  adapters:[new EthersAdapter()],
+  networks:[botTestnet,botMainnet],
+  defaultNetwork:botTestnet,
+  projectId:PROJECT_ID,
+  metadata:{
+    name:`BotLaunch`,
+    description:`Gated token launches on BOT Chain`,
+    url:`https://bot-launch-delta.vercel.app`,
+    icons:[`https://bot-launch-delta.vercel.app/favicon.ico`],
+  },
+  themeVariables:{'--w3m-accent':`#bf3a1e`},
+  features:{analytics:false},
+});
+
+let walletProvider=null;
+let _connectResolve=null;
+
+function getProvider(){
+  if(walletProvider)return walletProvider;
+  try{
+    if(modal&&typeof modal.getWalletProvider===`function`){
+      const p=modal.getWalletProvider(`eip155`)||modal.getWalletProvider();
+      if(p){walletProvider=p;return p;}
+    }
+  }catch(e){}
+  return null;
+}
+
+async function syncFromProvider(wp){
+  let bp=new ethers.BrowserProvider(wp);
+  const net=await bp.getNetwork();
+  if(Number(net.chainId)!==968){
+    log(`switching to BOT Chain testnet…`);
+    await modal.switchNetwork(botTestnet);
+    bp=new ethers.BrowserProvider(getProvider()||wp);
+  }
+  signer=await bp.getSigner();
+  account=await signer.getAddress();
+}
+
+function updateConnectedUI(){
+  el(`navState`).textContent=shorten(account)+` · testnet`;
+  el(`connectBtn`).textContent=`Connected`;
+}
+function updateDisconnectedUI(){
+  el(`navState`).textContent=`read-only`;
+  el(`connectBtn`).textContent=`Connect wallet`;
+}
+
+modal.subscribeProviders((state)=>{
+  if(state&&state[`eip155`])walletProvider=state[`eip155`];
+});
+
+modal.subscribeAccount(async (state)=>{
+  if(state&&state.isConnected&&state.address){
+    account=state.address;
+    const wp=getProvider();
+    if(wp){
+      try{
+        await syncFromProvider(wp);
+        updateConnectedUI();
+        log(`connected `+account);
+      }catch(e){log(`connect failed: `+(e.reason||e.shortMessage||e.message));}
+    }else{
+      updateConnectedUI();
+      log(`connected `+account);
+    }
+    if(_connectResolve){_connectResolve(!!signer);_connectResolve=null;}
+  }else{
+    const was=!!account;
+    account=null;signer=null;
+    updateDisconnectedUI();
+    if(was)log(`disconnected`);
+    if(_connectResolve){_connectResolve(false);_connectResolve=null;}
+  }
+});
+
+modal.subscribeState((state)=>{
+  if(state&&state.open===false&&_connectResolve&&!signer){
+    _connectResolve(false);_connectResolve=null;
+  }
+});
+
+function onConnectClick(){
+  let isConn=false;
+  try{isConn=modal.getIsConnectedState();}catch(e){}
+  if(isConn&&getProvider()){
+    try{
+      const r=modal.open({view:`Account`});
+      if(r&&typeof r.catch===`function`)r.catch(()=>{try{modal.open();}catch(e){}});
+    }catch(e){try{modal.open();}catch(_){}}
+    return;
+  }
+  connect();
+}
 
 const TICKER_ITEMS=[
   `no tax, no clowns — the token is a plain ERC-20`,
@@ -55,22 +177,26 @@ function erc20(a){
 }
 
 async function connect(){
-  const eth=window.ethereum;
-  if(!eth){ log(`no wallet found — install MetaMask and enable it`); return; }
-  const provider=eth.providers ? eth.providers[0]||eth : eth;
   try{
-    const accs=await provider.request({method:`eth_requestAccounts`});
-    account=accs[0];
-    try{
-      await provider.request({method:`wallet_switchEthereumChain`,params:[{chainId:`0x3c8`}]});
-    }catch(e){
-      await provider.request({method:`wallet_addEthereumChain`,params:[{chainId:`0x3c8`,chainName:`BOT Chain Testnet`,nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},rpcUrls:[RPC],blockExplorerUrls:[EXPLORER]}]});
+    if(modal.getIsConnectedState()){
+      const wp=getProvider();
+      if(wp){
+        await syncFromProvider(wp);
+        updateConnectedUI();
+        log(`connected `+account);
+        return true;
+      }
     }
-    signer=await new ethers.BrowserProvider(provider).getSigner();
-    el(`navState`).textContent=shorten(account)+` · testnet`;
-    el(`connectBtn`).textContent=`Connected`;
-    log(`connected `+account);
-  }catch(e){ log(`connect failed: `+(e.reason||e.shortMessage||e.message)); }
+  }catch(e){}
+  const pending=new Promise((resolve)=>{_connectResolve=resolve;});
+  try{modal.open();}
+  catch(e){
+    _connectResolve=null;
+    log(`connect failed: `+(e.message||e));
+    return false;
+  }
+  const timeout=new Promise((resolve)=>setTimeout(()=>resolve(!!signer),120000));
+  return Promise.race([pending,timeout]);
 }
 
 async function send(promise,label){
@@ -195,7 +321,7 @@ function buildTicker(){
 document.addEventListener(`DOMContentLoaded`,()=>{
   el(`faddr`).value=FACTORY_DEFAULT;
   buildTicker();
-  el(`connectBtn`).addEventListener(`click`,connect);
+  el(`connectBtn`).addEventListener(`click`,onConnectClick);
   el(`b_create`).addEventListener(`click`,doCreate);
   el(`b_pool`).addEventListener(`click`,doPool);
   el(`b_verify`).addEventListener(`click`,doVerify);
@@ -205,4 +331,16 @@ document.addEventListener(`DOMContentLoaded`,()=>{
   el(`vf_tok`).addEventListener(`change`,readTokenStatus);
   readGateState();
   readTokenStatus();
+  setTimeout(async ()=>{
+    try{
+      if(!signer&&modal.getIsConnectedState()){
+        const wp=getProvider();
+        if(wp){
+          await syncFromProvider(wp);
+          updateConnectedUI();
+          log(`session restored `+account);
+        }
+      }
+    }catch(e){}
+  },800);
 });
