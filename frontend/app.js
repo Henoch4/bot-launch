@@ -55,18 +55,22 @@ function erc20(a){
 }
 
 async function connect(){
-  if(!window.ethereum){ log(`no wallet found, use MetaMask`); return; }
-  const accs=await window.ethereum.request({method:`eth_requestAccounts`});
-  account=accs[0];
+  const eth=window.ethereum;
+  if(!eth){ log(`no wallet found — install MetaMask and enable it`); return; }
+  const provider=eth.providers ? eth.providers[0]||eth : eth;
   try{
-    await window.ethereum.request({method:`wallet_switchEthereumChain`,params:[{chainId:`0x3c8`}]});
-  }catch(e){
-    await window.ethereum.request({method:`wallet_addEthereumChain`,params:[{chainId:`0x3c8`,chainName:`BOT Chain Testnet`,nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},rpcUrls:[RPC],blockExplorerUrls:[EXPLORER]}]});
-  }
-  signer=await new ethers.BrowserProvider(window.ethereum).getSigner();
-  el(`navState`).textContent=shorten(account)+` · testnet`;
-  el(`connectBtn`).textContent=`Connected`;
-  log(`connected `+account);
+    const accs=await provider.request({method:`eth_requestAccounts`});
+    account=accs[0];
+    try{
+      await provider.request({method:`wallet_switchEthereumChain`,params:[{chainId:`0x3c8`}]});
+    }catch(e){
+      await provider.request({method:`wallet_addEthereumChain`,params:[{chainId:`0x3c8`,chainName:`BOT Chain Testnet`,nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},rpcUrls:[RPC],blockExplorerUrls:[EXPLORER]}]});
+    }
+    signer=await new ethers.BrowserProvider(provider).getSigner();
+    el(`navState`).textContent=shorten(account)+` · testnet`;
+    el(`connectBtn`).textContent=`Connected`;
+    log(`connected `+account);
+  }catch(e){ log(`connect failed: `+(e.reason||e.shortMessage||e.message)); }
 }
 
 async function send(promise,label){
