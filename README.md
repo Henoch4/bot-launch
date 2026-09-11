@@ -26,10 +26,11 @@ which tokens are admissible to the DEX pool path.
 Phase 2 (see below) is where value leaks if an operator signs off too fast. Gating exists
 so the decode of "is this safe to list" is never rushed under user pressure.
 
-## Phase 2 after pool creation
-1. Price init via position manager createAndInitializePoolIfNecessary
-2. Add concentrated liquidity inside a tight range
-3. Lock LP via Liquidity Locker docs at dev-docs.botchain.ai/docs/Liquidity-Locker
+## Phase 2 after pool creation (live on testnet 968)
+`LiquidityLocker` (`contracts/LiquidityLocker.sol`, testnet `0x9276644dC1E26a6d183a5e76321BF6e92a0c2d67`) is additive — factory untouched:
+1. `lockLiquidity(params)` ensures the pool via the factory (gate inherited — unverified reverts `NotVerified`), initializes price if needed, pulls both tokens, mints via the position manager, holds the LP NFT until `unlockAt`
+2. `withdraw(id)` releases the NFT to the creator after expiry (`TooEarly` before)
+3. Proven live: NFT #10686 locked + withdrawn on the real testnet V3 stack (`scripts/live-lock.js`)
 4. Pair token against BOT to earn the 20 percent Scheme A bonus
 
 ## Roles (two-key wall, live on testnet 968)

@@ -74,7 +74,7 @@ Only 2–3 transactions separate a raw idea from a listed, pooled token — ever
 | Item | Status |
 |---|---|
 | Listing gate + verified readback | Shipped (testnet 968) |
-| Liquidity locker — time-locked LP separate from the router path, so rug pressure can never close a listed pool | Next |
+| Liquidity locker — time-locked LP separate from the router path, so rug pressure can never close a listed pool | Live (testnet 968, LiquidityLocker 0x9276644dC1E26a6d183a5e76321BF6e92a0c2d67) |
 | Two-key signing split — owner holds gating + roles, gatekeeper alone signs list/admit; neither key does both | Live (testnet 968) |
 | Pedigree explorer — who minted, which pools cleared, LP positions live | Parked |
 | Metadata registry — on-chain URI per token for dApps/aggregators | Parked |
