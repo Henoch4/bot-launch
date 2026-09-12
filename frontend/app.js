@@ -191,12 +191,12 @@ function onConnectClick(){
 }
 
 const TICKER_ITEMS=[
-  `no tax, no clowns — the token is a plain ERC-20`,
-  `listings blocked until the gatekeeper verifies your token`,
-  `pool created on the audited V3 engine, LP stays yours`,
-  `gate is a chain-of-custody signal — not advice, not yolo`,
-  `two-key wall live — owner plus gatekeeper`,
-  `sandbox mainnet boots first — harsher taxes included`,
+  `no hidden taxes — what buyers see is what they get`,
+  `every listing reviewed before it can trade`,
+  `trade on audited rails — your liquidity stays yours`,
+  `approval history is public — no trust-me launches`,
+  `no single key can list and approve alone`,
+  `a full practice copy of mainnet ships first`,
 ];
 
 function log(m){
@@ -325,7 +325,7 @@ async function readTokenStatus(){
     const p=new ethers.JsonRpcProvider(RPC);
     const v=new ethers.Contract(el(`faddr`).value.trim()||FACTORY_DEFAULT,FACTORY_ABI,p);
     const on=await v.verified(t);
-    s.textContent=on?`✓ verified — ${shorten(t)} clears the gate`:`✗ not verified — ensurePool will revert with NotVerified`;
+    s.textContent=on?`✓ approved — ${shorten(t)} clears the gate`:`✗ not approved yet — pooling stays blocked until it is`;
     s.style.color=on?`var(--green)`:`var(--red)`;
   }catch(e){
     s.textContent=`could not read verified status`;
@@ -395,7 +395,7 @@ async function doPool(){
   const fee=Number(el(`pool_fee`).value);
   if(!t||!b){ log(`pool: token and base required`); return; }
   try{
-    if(!await factory().supportedFee(fee)){ log(`pool: fee tier ${fee} not supported by this factory — tx would revert BadFeeTier`); return; }
+    if(!await factory().supportedFee(fee)){ log(`pool: that fee tier isn't offered here — pick 0.01, 0.05, 0.30 or 1.00%`); return; }
   }catch(e){}
   const rc=await send(factory().ensurePool(t,b,fee),`ensurePool (${shorten(t)})`);
   if(rc){

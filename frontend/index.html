@@ -317,7 +317,7 @@ button.btn{
     <div class="stamp">GATE ENFORCED</div>
     <div class="kicker">BOT Chain · token launch infrastructure</div>
     <h1>Anyone can mint a token.<br><span class="serif-b">Not everyone clears the gate.</span></h1>
-    <div class="sub">Launch on a real DEX rail. One contract mints your token, another hands it to an audited pool engine — and a third-party gatekeeper decides who plays.</div>
+    <div class="sub">Launch your token on a real exchange — minted straight to your wallet, listed only after an independent review, with your liquidity staying yours.</div>
     <div class="ctas">
       <a href="#console"><button class="btn primary">Open the console</button></a>
       <a href="#gate"><button class="btn ghost">Read the gate rules</button></a>
@@ -356,17 +356,17 @@ button.btn{
       <div class="step">
         <span class="num">1</span>
         <h3>Mint your token</h3>
-        <p><code>createToken(name, symbol, supply)</code> — a plain ERC-20 lands in your wallet. No tax, no clowns, no renounce ceremony.</p>
+        <p>Your token lands in your wallet in seconds — no hidden taxes, no secret controls, nothing held back. (<code>createToken(name, symbol, supply)</code>)</p>
       </div>
       <div class="step">
         <span class="num">2</span>
         <h3>Pass the gate</h3>
-        <p>The gatekeeper operator must <code>setVerified(token, true)</code>. Until then, <code>ensurePool</code> refuses you on-chain — no silent rug, no unlocked LP.</p>
+        <p>An independent reviewer approves your listing first. Until then no trading pool can exist — so buyers never walk into a silent rug. (<code>setVerified(token, true)</code>)</p>
       </div>
       <div class="step">
         <span class="num">3</span>
         <h3>Get a pool</h3>
-        <p><code>ensurePool(token, base, fee)</code> pulls the pool or creates one on the audited V3 engine, then you add liquidity yourself. Your keys, your liquidity.</p>
+        <p>Your pool opens on audited exchange rails, and you add the liquidity yourself — your keys, your liquidity. (<code>ensurePool(token, base, fee)</code>)</p>
       </div>
     </div>
   </section>
@@ -422,7 +422,7 @@ button.btn{
           <div class="cons-field"><label>Supply</label><input id="tk_supply" type="number" min="0" step="1" value="1000000"></div>
           <button class="btn primary cons-btn" id="b_create">createToken →</button>
           <div class="mint-result" id="mint_result">token minted.</div>
-          <div class="cons-sub">The full supply lands in your wallet as <code>tx.from</code>.</div>
+          <div class="cons-sub">The entire supply goes straight to your wallet — nothing held back.</div>
         </div>
 <div class="cons-group">
            <h4>Ⅱ · Hand it to the pool engine</h4>
@@ -437,7 +437,7 @@ button.btn{
              </select>
            </div>
            <button class="btn primary cons-btn" id="b_pool">ensurePool →</button>
-           <div class="cons-sub">Gated — will revert with <code>NotVerified</code> while the gate is on and your token isn't cleared.</div>
+           <div class="cons-sub">Stays blocked until the gatekeeper approves your token — that's what keeps scam listings out.</div>
          </div>
          <div class="cons-group">
            <h4>Ⅲ · Liquidity locker</h4>
@@ -458,7 +458,7 @@ button.btn{
            <div class="cons-field"><label>Lock ID to withdraw</label><input id="lock_withdraw_id" type="number" min="0" placeholder="e.g. 1"></button>
            <button class="btn cons-btn" id="b_withdraw">withdraw →</button>
            <div class="mint-result" id="lock_result"> — </div>
-           <div class="cons-sub">Note: you must approve the locker contract to spend your tokens first.</div>
+           <div class="cons-sub">Approve once so the locker can pull your tokens — then your liquidity position stays locked until unlock.</div>
          </div>
        </div>
     </div>
