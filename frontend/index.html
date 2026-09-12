@@ -302,6 +302,10 @@ button.btn{
     <a href="#console">operator console</a>
     <a href="#roadmap">roadmap</a>
     <a href="#whitepaper">whitepaper</a>
+    <select id="netSel" title="Network" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px;border-radius:4px;border:1px solid var(--line);background:var(--panel);color:var(--ink);min-height:44px;">
+      <option value="968">Testnet 968</option>
+      <option value="677">Mainnet 677</option>
+    </select>
     <span id="navState">read-only</span>
     <button class="btn primary" id="connectBtn">Connect wallet</button>
   </div>
@@ -407,7 +411,7 @@ button.btn{
     <div class="console">
       <div class="console-bar">
         <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-        <span class="console-title">botlaunch console — live testnet 968</span>
+        <span class="console-title" id="consoleTitle">botlaunch console — live testnet 968</span>
         <span id="gateState">gate: —</span>
       </div>
       <div class="console-body">
@@ -648,7 +652,7 @@ creator adds liquidity (own keys, own LP)</div>
 
 <footer>
   <div class="addr-field"><span>factory</span><input id="faddr" size="46"></div>
-  <div><a href="#" id="clearLog">clear log</a> · <span>rpc.bohr.life · testnet 968</span></div>
+  <div><a href="#" id="clearLog">clear log</a> · <span id="netFoot">rpc.bohr.life · testnet 968</span></div>
 </footer>
 
 <script type="importmap">

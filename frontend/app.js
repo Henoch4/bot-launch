@@ -2,10 +2,34 @@ import * as ethers from 'ethers';
 import { createAppKit } from '@reown/appkit';
 import { EthersAdapter } from '@reown/appkit-adapter-ethers';
 
-const FACTORY_DEFAULT=`0xaE1790ddDD25B2Fa95D4c0528b78F9210F4fA43B`;
-const LOCKER_DEFAULT=`0x9276644dC1E26a6d183a5e76321BF6e92a0c2d67`;
-const RPC=`https://rpc.bohr.life`;
-const EXPLORER=`https://scan.bohr.life`;
+const NETS={
+  968:{label:`testnet`,rpc:`https://rpc.bohr.life`,explorer:`https://scan.bohr.life`,
+    factory:`0xaE1790ddDD25B2Fa95D4c0528b78F9210F4fA43B`,
+    locker:`0x9276644dC1E26a6d183a5e76321BF6e92a0c2d67`},
+  677:{label:`mainnet`,rpc:`https://rpc.botchain.ai`,explorer:`https://scan.botchain.ai`,
+    factory:`0x839163E7d05531a1B1BEa5ac7352AA4cF2139764`,
+    locker:`0x4F2c0C7Aa493BA2770DE3d4b08C3B64761c36bFc`},
+};
+const NET_KEY=`bl_net`;
+let CHAIN_ID=Number(localStorage.getItem(NET_KEY))||968;
+if(!NETS[CHAIN_ID])CHAIN_ID=968;
+let RPC=NETS[CHAIN_ID].rpc;
+let EXPLORER=NETS[CHAIN_ID].explorer;
+let FACTORY_DEFAULT=NETS[CHAIN_ID].factory;
+let LOCKER_DEFAULT=NETS[CHAIN_ID].locker;
+function netObj(id){return id===677?botMainnet:botTestnet;}
+function applyNet(id){
+  CHAIN_ID=id;RPC=NETS[id].rpc;EXPLORER=NETS[id].explorer;
+  FACTORY_DEFAULT=NETS[id].factory;LOCKER_DEFAULT=NETS[id].locker;
+  try{localStorage.setItem(NET_KEY,String(id));}catch(e){}
+  const sel=el(`netSel`);if(sel)sel.value=String(id);
+  el(`faddr`).value=FACTORY_DEFAULT;
+  const ct=el(`consoleTitle`);if(ct)ct.textContent=`botlaunch console — live `+NETS[id].label+` `+id;
+  const nf=el(`netFoot`);if(nf)nf.textContent=NETS[id].rpc.replace(`https://`,``)+` · `+NETS[id].label+` `+id;
+  log(`network → BOT Chain `+NETS[id].label+` `+id);
+  readGateState();readRecentLedger();updateRoleUI();
+  if(account)el(`navState`).textContent=shorten(account)+` · `+NETS[id].label;
+}
 
 const FACTORY_ABI=[
 `function owner() view returns (address)`,
@@ -53,8 +77,8 @@ const botTestnet={
   caipNetworkId:`eip155:968`,
   name:`BOT Chain Testnet`,
   nativeCurrency:{name:`BOT`,symbol:`BOT`,decimals:18},
-  rpcUrls:{default:{http:[RPC]}},
-  blockExplorers:{default:{name:`BOT Scan`,url:EXPLORER}},
+  rpcUrls:{default:{http:[`https://rpc.bohr.life`]}},
+  blockExplorers:{default:{name:`BOT Scan`,url:`https://scan.bohr.life`}},
 };
 const botMainnet={
   id:677,
@@ -98,9 +122,9 @@ function getProvider(){
 async function syncFromProvider(wp){
   let bp=new ethers.BrowserProvider(wp);
   const net=await bp.getNetwork();
-  if(Number(net.chainId)!==968){
-    log(`switching to BOT Chain testnet…`);
-    await modal.switchNetwork(botTestnet);
+  if(Number(net.chainId)!==CHAIN_ID){
+    log(`switching to BOT Chain `+NETS[CHAIN_ID].label+`…`);
+    await modal.switchNetwork(netObj(CHAIN_ID));
     bp=new ethers.BrowserProvider(getProvider()||wp);
   }
   signer=await bp.getSigner();
@@ -108,7 +132,7 @@ async function syncFromProvider(wp){
 }
 
 function updateConnectedUI(){
-  el(`navState`).textContent=shorten(account)+` · testnet`;
+  el(`navState`).textContent=shorten(account)+` · `+NETS[CHAIN_ID].label;
   el(`connectBtn`).textContent=`Connected`;
 }
 function updateDisconnectedUI(){
@@ -465,6 +489,7 @@ function buildTicker(){
 
 document.addEventListener(`DOMContentLoaded`,()=>{
   el(`faddr`).value=FACTORY_DEFAULT;
+  const sel=el(`netSel`);if(sel){sel.value=String(CHAIN_ID);sel.addEventListener(`change`,()=>applyNet(Number(sel.value)));}
   buildTicker();
   el(`connectBtn`).addEventListener(`click`,onConnectClick);
   el(`b_create`).addEventListener(`click`,doCreate);
