@@ -30,7 +30,10 @@
     --slab-text:#e8dfc8;
     --slab-muted:#a99f8b;
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :focus:not(:focus-visible){outline:none;}
+  .btn:active{transform:translateY(1px);filter:brightness(.97);}
+  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--seal-deep);outline-offset:0;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--paper);color:var(--ink);font-family:'Zilla Slab',serif;line-height:1.5;
