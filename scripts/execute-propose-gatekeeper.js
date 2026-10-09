@@ -4,7 +4,9 @@ const { ethers } = require('hardhat');
 
 async function main() {
   const FACTORY = '0x839163E7d05531a1B1BEa5ac7352AA4cF2139764';
-  const GATEKEEPER = '0x45478D362d78c31CFD7Af9D9f2F7c977751EfE3a';
+  // ROTATED 2026-10-09 (tx 0x429f70b5... block 26074053): previous pending key was
+  // leaked publicly in git history — burned. Never propose the old address again.
+  const GATEKEEPER = '0xC894Ad5528a9Fd2eD6a077718c05B1d038FFD729';
 
   const [deployer] = await ethers.getSigners();
   const factory = await ethers.getContractAt('TokenFactory', FACTORY);

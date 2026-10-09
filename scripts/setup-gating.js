@@ -1,12 +1,12 @@
 // Generate gatekeeper handover + gating ON transaction data for TokenFactory
 // OFFLINE — no RPC needed. Run with plain node.
-// Gatekeeper EOA: 0x45478D362d78c31CFD7Af9D9f2F7c977751EfE3a — KEY ROTATED, see git history note in handover log
-// [REDACTED 2026-10-09: this key was committed publicly — it is burned. Rotation tx: proposeGatekeeper overwrote pending.]
+// Gatekeeper EOA: 0xC894Ad5528a9Fd2eD6a077718c05B1d038FFD729 (rotated 2026-10-09 — prior key 0x45478D... leaked publicly, burned)
+// [REDACTED: keys never go in files. New key lives in botchain-builds\gatekeeper-rotation.json, offline only.]
 const { ethers } = require('ethers');
 
 const FACTORY = '0x839163E7d05531a1B1BEa5ac7352AA4cF2139764';
 const SAFE = '0x3f6599D5694044Ac0B357695843391220a5aE0c3';
-const GATEKEEPER = '0x45478D362d78c31CFD7Af9D9f2F7c977751EfE3a';
+const GATEKEEPER = '0xC894Ad5528a9Fd2eD6a077718c05B1d038FFD729';
 
 const iface = new ethers.Interface([
   'function proposeGatekeeper(address g)',
