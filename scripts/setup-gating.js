@@ -1,8 +1,7 @@
 // Generate gatekeeper handover + gating ON transaction data for TokenFactory
 // OFFLINE — no RPC needed. Run with plain node.
-// Gatekeeper EOA: 0x45478D362d78c31CFD7Af9D9f2F7c977751EfE3a
-// PRIVATE KEY: 0x9d9a39cce9783563ec06a9a771c2c7b1151ddbd4dbe9aeb224676c824ffc485d
-// BACKUP OFFLINE NOW.
+// Gatekeeper EOA: 0x45478D362d78c31CFD7Af9D9f2F7c977751EfE3a — KEY ROTATED, see git history note in handover log
+// [REDACTED 2026-10-09: this key was committed publicly — it is burned. Rotation tx: proposeGatekeeper overwrote pending.]
 const { ethers } = require('ethers');
 
 const FACTORY = '0x839163E7d05531a1B1BEa5ac7352AA4cF2139764';
@@ -17,7 +16,7 @@ const iface = new ethers.Interface([
 
 console.log('=== GATEKEEPER SETUP ===');
 console.log('Fresh EOA: ', GATEKEEPER);
-console.log('Private Key: 0x9d9a39cce9783563ec06a9a771c2c7b1151ddbd4dbe9aeb224676c824ffc485d');
+console.log('Private Key: [REDACTED — loaded from env only, never inline]');
 console.log('BACKUP THIS PRIVATE KEY OFFLINE NOW. It controls mainnet gating.');
 console.log('');
 
